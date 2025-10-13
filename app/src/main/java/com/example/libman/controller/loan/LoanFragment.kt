@@ -1,0 +1,24 @@
+package com.example.libman.controller.loan
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.TextView
+import androidx.fragment.app.Fragment
+import com.example.libman.R
+
+class LoanFragment : Fragment() {
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        val view = inflater.inflate(R.layout.fragment_loan, container, false)
+
+        val textView: TextView = view.findViewById(R.id.tvLoans)
+        textView.text = "💰 Loan Screen"
+
+        return view
+    }
+}

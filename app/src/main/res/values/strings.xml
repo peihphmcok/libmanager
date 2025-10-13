@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">libman</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="available_yes">Còn trống</string>
+    <string name="available_no">Hết sách</string>
+</resources>

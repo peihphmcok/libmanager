@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_books"
+        android:title="Books"
+        android:icon="@drawable/book" />
+
+    <item
+        android:id="@+id/nav_authors"
+        android:title="Authors"
+        android:icon="@drawable/writer" />
+
+    <item
+        android:id="@+id/nav_loans"
+        android:title="Loans"
+        android:icon="@drawable/signing" />
+
+    <item
+        android:id="@+id/nav_profile"
+        android:title="Profile"
+        android:icon="@drawable/user" />
+</menu>
