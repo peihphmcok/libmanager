@@ -69,4 +69,6 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 // --- Optional: Logging Interceptor để debug API ---
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
+    implementation("com.google.android.material:material:1.12.0")
 }

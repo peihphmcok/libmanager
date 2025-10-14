@@ -9,12 +9,13 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.libman.R
 import com.example.libman.network.ApiClient
-import com.example.libman.network.AuthService
+import com.example.libman.network.ApiService
 import com.example.libman.models.RegisterRequest
 import com.example.libman.models.RegisterResponse
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class RegisterActivity : AppCompatActivity() {
     private lateinit var etUsername: EditText
@@ -22,7 +23,7 @@ class RegisterActivity : AppCompatActivity() {
     private lateinit var etPassword: EditText
     private lateinit var btnRegister: Button
     private lateinit var tvGoLogin: TextView
-    private lateinit var authService: AuthService
+    private lateinit var apiService: ApiService
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,7 +35,7 @@ class RegisterActivity : AppCompatActivity() {
         btnRegister = findViewById(R.id.btnRegister)
         tvGoLogin = findViewById(R.id.tvGoLogin)
 
-        authService = ApiClient.getRetrofit(this).create(AuthService::class.java)
+        apiService = ApiClient.getRetrofit(this).create(ApiService::class.java)
 
         btnRegister.setOnClickListener {
             val username = etUsername.text.toString().trim()
@@ -51,22 +52,18 @@ class RegisterActivity : AppCompatActivity() {
                 email = email,
                 password = pass
             )
-            authService.register(request).enqueue(object : Callback<RegisterResponse> {
-                override fun onResponse(call: Call<RegisterResponse>, response: Response<RegisterResponse>) {
-                    if (response.isSuccessful) {
-                        Toast.makeText(this@RegisterActivity, response.body()?.message ?: "Register success! Please login.", Toast.LENGTH_LONG).show()
-                        startActivity(Intent(this@RegisterActivity, LoginActivity::class.java))
-                        finish()
-                    } else {
-                        val msg = response.body()?.message ?: "Register failed: ${response.code()}"
-                        Toast.makeText(this@RegisterActivity, msg, Toast.LENGTH_SHORT).show()
+            CoroutineScope(Dispatchers.Main).launch {
+                try {
+                    val response = withContext(Dispatchers.IO) {
+                        apiService.register(request)
                     }
+                    Toast.makeText(this@RegisterActivity, response.message ?: "Register success! Please login.", Toast.LENGTH_LONG).show()
+                    startActivity(Intent(this@RegisterActivity, LoginActivity::class.java))
+                    finish()
+                } catch (e: Exception) {
+                    Toast.makeText(this@RegisterActivity, "Network Error: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
-
-                override fun onFailure(call: Call<RegisterResponse>, t: Throwable) {
-                    Toast.makeText(this@RegisterActivity, "Network Error: ${t.message}", Toast.LENGTH_SHORT).show()
-                }
-            })
+            }
         }
 
         tvGoLogin.setOnClickListener {

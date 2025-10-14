@@ -9,15 +9,26 @@ import com.example.libman.controller.book.BookListFragment
 import com.example.libman.controller.author.AuthorFragment
 import com.example.libman.controller.loan.LoanFragment
 import com.example.libman.controller.user.ProfileFragment
+import com.example.libman.utils.TokenManager
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class HomeActivity : AppCompatActivity() {
 
     private lateinit var bottomNav: BottomNavigationView
+    private lateinit var tokenManager: TokenManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
+
+        tokenManager = TokenManager(this)
+        
+        // Check if user is logged in
+        if (tokenManager.getToken().isNullOrEmpty()) {
+            startActivity(Intent(this, LoginActivity::class.java))
+            finish()
+            return
+        }
 
         bottomNav = findViewById(R.id.bottom_navigation)
 

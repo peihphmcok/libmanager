@@ -19,6 +19,12 @@
             android:name=".controller.loan.LoanDetailActivity"
             android:exported="false" />
         <activity
+            android:name=".controller.loan.AddLoanActivity"
+            android:exported="false" />
+        <activity
+            android:name=".controller.review.ReviewActivity"
+            android:exported="false" />
+        <activity
             android:name=".controller.author.EditAuthorActivity"
             android:exported="false" />
         <activity
@@ -38,17 +44,16 @@
             android:exported="false" /> <!-- Màn hình Home -->
         <activity
             android:name=".controller.home.HomeActivity"
+            android:exported="false" />
+        
+        <activity
+            android:name=".controller.auth.LoginActivity"
             android:exported="true" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>/> <!-- Màn hình Login (chạy đầu tiên) -->
-
-        <activity
-            android:name=".controller.auth.LoginActivity"
-            android:exported="false"/>
+        </activity>
 
     </application>
 

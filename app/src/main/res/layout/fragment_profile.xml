@@ -62,6 +62,15 @@
                     android:text="email@example.com"
                     android:textColor="#E0E0E0"
                     android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/tvRole"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Role: user"
+                    android:textColor="#E0E0E0"
+                    android:textSize="12sp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

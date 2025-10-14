@@ -8,8 +8,10 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.libman.R
 import com.example.libman.models.Author
 
-class AuthorAdapter(private val authors: List<Author>) :
-    RecyclerView.Adapter<AuthorAdapter.AuthorViewHolder>() {
+class AuthorAdapter(
+    private val authors: List<Author>,
+    private val onItemClick: (Author) -> Unit = {}
+) : RecyclerView.Adapter<AuthorAdapter.AuthorViewHolder>() {
 
     class AuthorViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val name: TextView = itemView.findViewById(R.id.tvAuthorName)
@@ -24,11 +26,15 @@ class AuthorAdapter(private val authors: List<Author>) :
 
     override fun onBindViewHolder(holder: AuthorViewHolder, position: Int) {
         val a = authors[position]
-        holder.name.text = a.name
-        holder.bio.text = a.bio ?: ""
-        val national = a.nationality ?: "Unknown"
-        val birth = a.birthyear?.toString() ?: "—"
+        holder.name.text = a.name ?: "Không có tên"
+        holder.bio.text = a.bio ?: "Không có thông tin"
+        val national = a.nationality ?: "Không xác định"
+        val birth = a.birthYear?.toString() ?: "—"
         holder.extra.text = "$national • $birth"
+        
+        holder.itemView.setOnClickListener {
+            onItemClick(a)
+        }
     }
 
     override fun getItemCount(): Int = authors.size

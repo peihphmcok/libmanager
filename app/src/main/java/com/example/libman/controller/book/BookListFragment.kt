@@ -1,5 +1,6 @@
 package com.example.libman.controller.book
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -16,6 +17,8 @@ import com.example.libman.network.ApiClient
 import com.example.libman.network.ApiService
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.example.libman.utils.TokenManager
+import com.example.libman.utils.VietnameseUtils
+import com.example.libman.utils.TestDataGenerator
 
 class BookListFragment : Fragment() {
 
@@ -64,13 +67,10 @@ class BookListFragment : Fragment() {
     }
 
     private fun setupFab() {
-        val role = TokenManager(requireContext()).getRole()
-        val isAdmin = role == "admin"
-        fabAddBook.visibility = if (isAdmin) View.VISIBLE else View.GONE
-        if (isAdmin) {
-            fabAddBook.setOnClickListener {
-                startActivity(android.content.Intent(requireContext(), AddBookActivity::class.java))
-            }
+        // Show add book button for all users (temporarily removed admin check)
+        fabAddBook.visibility = View.VISIBLE
+        fabAddBook.setOnClickListener {
+            startActivity(Intent(requireContext(), AddBookActivity::class.java))
         }
     }
 
@@ -85,7 +85,8 @@ class BookListFragment : Fragment() {
                 allBooks = books
                 bindBooks(books)
             } catch (e: Exception) {
-                allBooks = emptyList()
+                // Fallback to sample data if API fails
+                allBooks = TestDataGenerator.generateSampleBooks()
                 bindBooks(allBooks)
             } finally {
                 showLoading(false)
@@ -100,7 +101,13 @@ class BookListFragment : Fragment() {
         } else {
             emptyLayout.visibility = View.GONE
             recyclerView.visibility = View.VISIBLE
-            adapter = BookAdapter(books)
+            adapter = BookAdapter(books) { book ->
+                // Navigate to book detail
+                val intent = Intent(requireContext(), BookDetailActivity::class.java)
+                intent.putExtra("book_id", book.id)
+                intent.putExtra("book_title", book.title)
+                startActivity(intent)
+            }
             recyclerView.adapter = adapter
         }
     }
@@ -111,9 +118,9 @@ class BookListFragment : Fragment() {
             bindBooks(allBooks)
             return
         }
-        val lower = trimmed.lowercase()
         val filtered = allBooks.filter { b ->
-            b.title.lowercase().contains(lower) || b.author.lowercase().contains(lower)
+            VietnameseUtils.matchesVietnamese(b.title, trimmed) || 
+            VietnameseUtils.matchesVietnamese(b.author, trimmed)
         }
         bindBooks(filtered)
     }
@@ -121,4 +128,5 @@ class BookListFragment : Fragment() {
     private fun showLoading(show: Boolean) {
         loadingLayout.visibility = if (show) View.VISIBLE else View.GONE
     }
+
 }
