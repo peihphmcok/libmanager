@@ -1,5 +1,6 @@
 package com.example.libman.controller.author
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -89,7 +90,11 @@ class AddAuthorActivity : AppCompatActivity() {
                 }
                 
                 Toast.makeText(this@AddAuthorActivity, "Thêm tác giả thành công!", Toast.LENGTH_SHORT).show()
-                setResult(RESULT_OK)
+                
+                // Return the added author data
+                val resultIntent = Intent()
+                resultIntent.putExtra("added_author", author)
+                setResult(RESULT_OK, resultIntent)
                 finish()
                 
             } catch (e: Exception) {

@@ -21,7 +21,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@color/purple_700"
+                android:background="@color/primary"
                 android:gravity="center"
                 android:orientation="vertical"
                 android:padding="32dp">
@@ -40,7 +40,7 @@
                         android:background="@color/white"
                         android:padding="24dp"
                         android:src="@android:drawable/ic_menu_myplaces"
-                        app:tint="@color/purple_700" />
+                        app:tint="@color/primary" />
                 </com.google.android.material.card.MaterialCardView>
 
                 <!-- User Info -->
@@ -102,7 +102,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="0"
-                        android:textColor="@color/purple_700"
+                        android:textColor="@color/primary"
                         android:textSize="32sp"
                         android:textStyle="bold" />
 
@@ -182,7 +182,7 @@
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:src="@android:drawable/ic_menu_edit"
-                        app:tint="@color/purple_700" />
+                        app:tint="@color/primary" />
 
                     <TextView
                         android:layout_width="0dp"
@@ -222,7 +222,7 @@
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:src="@android:drawable/ic_lock_idle_lock"
-                        app:tint="@color/purple_700" />
+                        app:tint="@color/primary" />
 
                     <TextView
                         android:layout_width="0dp"
@@ -262,7 +262,7 @@
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:src="@android:drawable/ic_menu_preferences"
-                        app:tint="@color/purple_700" />
+                        app:tint="@color/primary" />
 
                     <TextView
                         android:layout_width="0dp"

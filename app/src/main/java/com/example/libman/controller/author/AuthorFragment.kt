@@ -1,10 +1,12 @@
 package com.example.libman.controller.author
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.view.*
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.Fragment
 import androidx.appcompat.widget.SearchView
 import androidx.lifecycle.lifecycleScope
@@ -21,7 +23,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import com.example.libman.utils.VietnameseUtils
 
 class AuthorFragment : Fragment() {
 
@@ -29,11 +30,19 @@ class AuthorFragment : Fragment() {
     private lateinit var loadingLayout: View
     private lateinit var emptyLayout: View
     private lateinit var searchView: SearchView
-    private lateinit var fabAddAuthor: FloatingActionButton
+    private lateinit var toolbar: Toolbar
     private lateinit var apiService: ApiService
     
     private var allAuthors: List<Author> = emptyList()
     private lateinit var adapter: AuthorAdapter
+    
+    // Selection mode for deletion
+    private var isSelectionMode = false
+    private val selectedAuthors = mutableSetOf<String>()
+    
+    companion object {
+        private const val REQUEST_CODE_ADD_AUTHOR = 1002
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -44,11 +53,50 @@ class AuthorFragment : Fragment() {
         initViews(view)
         setupApi()
         setupSearch()
-        setupFab()
         setupAdapter()
         fetchAuthors()
 
         return view
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        setupToolbar()
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setHasOptionsMenu(true)
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+        inflater.inflate(R.menu.author_list_menu, menu)
+        super.onCreateOptionsMenu(menu, inflater)
+        
+        // Debug: Log to see if menu is being created
+        android.util.Log.d("AuthorFragment", "Menu created with ${menu.size()} items")
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        android.util.Log.d("AuthorFragment", "Menu item clicked: ${item.itemId}")
+        return when (item.itemId) {
+            R.id.action_author_menu -> {
+                if (isSelectionMode) {
+                    exitSelectionMode()
+                } else {
+                    showToolbarMenu()
+                }
+                true
+            }
+            R.id.action_delete_authors -> {
+                confirmDeleteSelected()
+                true
+            }
+            else -> {
+                android.util.Log.d("AuthorFragment", "Unknown menu item: ${item.itemId}")
+                super.onOptionsItemSelected(item)
+            }
+        }
     }
 
     private fun initViews(view: View) {
@@ -56,13 +104,50 @@ class AuthorFragment : Fragment() {
         loadingLayout = view.findViewById(R.id.loadingLayout)
         emptyLayout = view.findViewById(R.id.emptyLayout)
         searchView = view.findViewById(R.id.svAuthors)
-        fabAddAuthor = view.findViewById(R.id.fabAddAuthor)
+        toolbar = view.findViewById(R.id.toolbar)
 
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
     }
 
     private fun setupApi() {
         apiService = ApiClient.getRetrofit(requireContext()).create(ApiService::class.java)
+    }
+
+    private fun setupToolbar() {
+        // Set up toolbar for fragment
+        val activity = requireActivity() as androidx.appcompat.app.AppCompatActivity
+        activity.setSupportActionBar(toolbar)
+        toolbar.title = "Tác Giả"
+        
+        // Ensure menu is visible
+        setHasOptionsMenu(true)
+        
+        // Force invalidate options menu
+        activity.invalidateOptionsMenu()
+        
+        // Debug: Log toolbar setup
+        android.util.Log.d("AuthorFragment", "Toolbar setup completed")
+        
+        // Test: Add a test menu item to see if menu works
+        toolbar.inflateMenu(R.menu.author_list_menu)
+        toolbar.setOnMenuItemClickListener { item ->
+            android.util.Log.d("AuthorFragment", "Toolbar menu item clicked: ${item.itemId}")
+            when (item.itemId) {
+                R.id.action_author_menu -> {
+                    if (isSelectionMode) {
+                        exitSelectionMode()
+                    } else {
+                        showToolbarMenu()
+                    }
+                    true
+                }
+                R.id.action_delete_authors -> {
+                    confirmDeleteSelected()
+                    true
+                }
+                else -> false
+            }
+        }
     }
 
     private fun setupSearch() {
@@ -79,41 +164,57 @@ class AuthorFragment : Fragment() {
         })
     }
 
-    private fun setupFab() {
-        // Show add author button for all users (temporarily removed admin check)
-        fabAddAuthor.visibility = View.VISIBLE
-        fabAddAuthor.setOnClickListener {
-            startActivity(Intent(requireContext(), AddAuthorActivity::class.java))
-        }
-    }
 
     private fun setupAdapter() {
-        adapter = AuthorAdapter(allAuthors) { author ->
-            // Handle author click - show context menu
-            showAuthorContextMenu(author)
-        }
+        adapter = AuthorAdapter(
+            authors = allAuthors,
+            onItemClick = { author ->
+                if (isSelectionMode) {
+                    // Toggle selection
+                    author.id?.let { authorId ->
+                        val isSelected = selectedAuthors.contains(authorId)
+                        onAuthorSelected(authorId, !isSelected)
+                    }
+                } else {
+                    // Navigate to author detail
+                    navigateToAuthorDetail(author)
+                }
+            },
+            onMenuClick = { author ->
+                // Show context menu for edit/delete
+                showAuthorContextMenu(author)
+            },
+            isSelectionMode = isSelectionMode,
+            selectedAuthors = selectedAuthors
+        )
         recyclerView.adapter = adapter
     }
 
+    private fun navigateToAuthorDetail(author: Author) {
+        val intent = Intent(requireContext(), AuthorDetailActivity::class.java)
+        intent.putExtra("author_name", author.name)
+        intent.putExtra("author_bio", author.bio)
+        intent.putExtra("author_birth_year", author.birthYear ?: 0)
+        intent.putExtra("author_nationality", author.nationality)
+        intent.putExtra("author_books_count", 5) // Mock data
+        startActivity(intent)
+    }
+
     private fun showAuthorContextMenu(author: Author) {
-        val options = arrayOf("Xem chi tiết", "Chỉnh sửa", "Xóa")
+        val options = arrayOf("Chỉnh sửa", "Xóa")
         
         AlertDialog.Builder(requireContext())
             .setTitle(author.name)
             .setItems(options) { _, which ->
                 when (which) {
                     0 -> {
-                        // View details - show author info
-                        showAuthorDetails(author)
-                    }
-                    1 -> {
                         // Edit author
                         val intent = Intent(requireContext(), UpdateAuthorActivity::class.java)
                         intent.putExtra("author_id", author.id)
                         intent.putExtra("author", author)
                         startActivity(intent)
                     }
-                    2 -> {
+                    1 -> {
                         // Delete author
                         showDeleteConfirmation(author)
                     }
@@ -197,13 +298,7 @@ class AuthorFragment : Fragment() {
         } else {
             emptyLayout.visibility = View.GONE
             recyclerView.visibility = View.VISIBLE
-            adapter = AuthorAdapter(authors) { author ->
-                // Navigate to edit author activity
-                val intent = Intent(requireContext(), EditAuthorActivity::class.java)
-                intent.putExtra("author_id", author.id)
-                startActivity(intent)
-            }
-            recyclerView.adapter = adapter
+            setupAdapter()
         }
     }
 
@@ -214,8 +309,8 @@ class AuthorFragment : Fragment() {
             return
         }
         val filtered = allAuthors.filter { author ->
-            VietnameseUtils.matchesVietnamese(author.name, trimmed) || 
-            VietnameseUtils.matchesVietnamese(author.bio, trimmed)
+            author.name?.contains(trimmed, ignoreCase = true) == true || 
+            author.bio?.contains(trimmed, ignoreCase = true) == true
         }
         bindAuthors(filtered)
     }
@@ -268,5 +363,112 @@ class AuthorFragment : Fragment() {
                 birthYear = 1828
             )
         )
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        
+        if (requestCode == REQUEST_CODE_ADD_AUTHOR && resultCode == Activity.RESULT_OK) {
+            val addedAuthor = data?.getParcelableExtra<Author>("added_author")
+            if (addedAuthor != null) {
+                // Add the new author to the list
+                allAuthors = allAuthors + addedAuthor
+                setupAdapter()
+                Toast.makeText(requireContext(), "Đã thêm tác giả mới vào danh sách", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun toggleSelectionMode() {
+        isSelectionMode = true
+        selectedAuthors.clear()
+
+        toolbar.title = "Chọn tác giả để xóa (0)"
+        toolbar.setBackgroundColor(requireContext().getColor(R.color.error))
+        
+        showDeleteButton()
+        setupAdapter() // Refresh adapter
+    }
+
+    private fun exitSelectionMode() {
+        isSelectionMode = false
+        selectedAuthors.clear()
+
+        toolbar.title = "Tác Giả"
+        toolbar.setBackgroundColor(requireContext().getColor(R.color.primary))
+        
+        hideDeleteButton()
+        setupAdapter() // Refresh adapter
+    }
+
+    private fun onAuthorSelected(authorId: String, isSelected: Boolean) {
+        if (isSelected) {
+            selectedAuthors.add(authorId)
+        } else {
+            selectedAuthors.remove(authorId)
+        }
+        toolbar.title = "Chọn tác giả để xóa (${selectedAuthors.size})"
+        setupAdapter() // Refresh adapter to show selection
+
+        if (selectedAuthors.isNotEmpty()) {
+            showDeleteButton()
+        } else {
+            hideDeleteButton()
+        }
+    }
+
+    private fun showDeleteButton() {
+        toolbar.menu.findItem(R.id.action_delete_authors)?.isVisible = true
+    }
+
+    private fun hideDeleteButton() {
+        toolbar.menu.findItem(R.id.action_delete_authors)?.isVisible = false
+    }
+
+    private fun confirmDeleteSelected() {
+        if (selectedAuthors.isEmpty()) return
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("Xóa tác giả")
+            .setMessage("Bạn có chắc chắn muốn xóa ${selectedAuthors.size} tác giả đã chọn?")
+            .setPositiveButton("Xóa") { _, _ ->
+                deleteSelectedAuthors()
+            }
+            .setNegativeButton("Hủy", null)
+            .show()
+    }
+
+    private fun deleteSelectedAuthors() {
+        if (selectedAuthors.isEmpty()) return
+        allAuthors = allAuthors.filterNot { selectedAuthors.contains(it.id) }
+        selectedAuthors.clear()
+        
+        exitSelectionMode() // Auto exit selection mode after deletion
+        Toast.makeText(requireContext(), "Đã xóa tác giả đã chọn", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun showToolbarMenu() {
+        android.util.Log.d("AuthorFragment", "showToolbarMenu called")
+        val options = arrayOf("Thêm tác giả", "Xóa tác giả")
+        
+        AlertDialog.Builder(requireContext())
+            .setTitle("Tác giả")
+            .setItems(options) { _, which ->
+                android.util.Log.d("AuthorFragment", "Menu option selected: $which")
+                when (which) {
+                    0 -> {
+                        android.util.Log.d("AuthorFragment", "Add author selected")
+                        // Add author
+                        val intent = Intent(requireContext(), AddAuthorActivity::class.java)
+                        startActivityForResult(intent, REQUEST_CODE_ADD_AUTHOR)
+                    }
+                    1 -> {
+                        android.util.Log.d("AuthorFragment", "Delete authors selected")
+                        // Delete authors - enter selection mode
+                        toggleSelectionMode()
+                    }
+                }
+            }
+            .show()
     }
 }

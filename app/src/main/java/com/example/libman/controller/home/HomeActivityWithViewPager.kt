@@ -10,7 +10,7 @@ import com.example.libman.utils.TokenManager
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import androidx.viewpager2.widget.ViewPager2
 
-class HomeActivity : AppCompatActivity() {
+class HomeActivityWithViewPager : AppCompatActivity() {
 
     private lateinit var bottomNav: BottomNavigationView
     private lateinit var viewPager: ViewPager2
@@ -18,7 +18,7 @@ class HomeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_home)
+        setContentView(R.layout.activity_home_with_viewpager)
 
         tokenManager = TokenManager(this)
         
@@ -29,11 +29,14 @@ class HomeActivity : AppCompatActivity() {
             return
         }
 
-        bottomNav = findViewById(R.id.bottom_navigation)
-        viewPager = findViewById(R.id.viewPager)
-
+        initViews()
         setupViewPager()
         setupBottomNavigation()
+    }
+
+    private fun initViews() {
+        bottomNav = findViewById(R.id.bottom_navigation)
+        viewPager = findViewById(R.id.viewPager)
     }
 
     private fun setupViewPager() {

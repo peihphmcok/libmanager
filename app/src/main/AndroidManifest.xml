@@ -31,6 +31,9 @@
             android:name=".controller.author.AddAuthorActivity"
             android:exported="false" />
         <activity
+            android:name=".controller.author.AuthorDetailActivity"
+            android:exported="false" />
+        <activity
             android:name=".controller.book.EditBookActivity"
             android:exported="false" />
         <activity
@@ -44,6 +47,18 @@
             android:exported="false" /> <!-- Màn hình Home -->
         <activity
             android:name=".controller.home.HomeActivity"
+            android:exported="false" />
+        <activity
+            android:name=".controller.author.AuthorDetailActivity"
+            android:exported="false" />
+        <activity
+            android:name=".controller.author.UpdateAuthorActivity"
+            android:exported="false" />
+        <activity
+            android:name=".controller.book.BookListActivity"
+            android:exported="false" />
+        <activity
+            android:name=".controller.home.HomeActivityWithViewPager"
             android:exported="false" />
         
         <activity

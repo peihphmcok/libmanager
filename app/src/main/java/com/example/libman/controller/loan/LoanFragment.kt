@@ -5,7 +5,12 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SearchView
+import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -19,19 +24,25 @@ import com.example.libman.network.ApiClient
 import com.example.libman.network.ApiService
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.example.libman.utils.TokenManager
-import com.example.libman.utils.VietnameseUtils
 import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.tabs.TabLayout
+import com.google.android.material.tabs.TabLayoutMediator
+import androidx.viewpager2.widget.ViewPager2
+import com.example.libman.adapters.LoanViewPagerAdapter
 
 class LoanFragment : Fragment() {
 
-    private lateinit var recyclerView: RecyclerView
+    private lateinit var tabLayout: TabLayout
+    private lateinit var viewPager: ViewPager2
     private lateinit var loadingLayout: View
     private lateinit var emptyLayout: View
     private lateinit var searchView: SearchView
-    private lateinit var fabAddLoan: FloatingActionButton
+    private lateinit var toolbar: Toolbar
 
     private var allLoans: List<Loan> = emptyList()
-    private var adapter: LoanAdapter? = null
+    private var activeLoans: List<Loan> = emptyList()
+    private var returnedLoans: List<Loan> = emptyList()
+    private lateinit var viewPagerAdapter: LoanViewPagerAdapter
     private lateinit var apiService: ApiService
 
     override fun onCreateView(
@@ -40,20 +51,58 @@ class LoanFragment : Fragment() {
     ): View? {
         val view = inflater.inflate(R.layout.fragment_loan, container, false)
 
-        recyclerView = view.findViewById(R.id.rvLoans)
+        tabLayout = view.findViewById(R.id.tabLayout)
+        viewPager = view.findViewById(R.id.viewPager)
         loadingLayout = view.findViewById(R.id.loadingLayout)
         emptyLayout = view.findViewById(R.id.emptyLayout)
         searchView = view.findViewById(R.id.svLoans)
-        fabAddLoan = view.findViewById(R.id.fabAddLoan)
+        toolbar = view.findViewById(R.id.toolbar)
 
-        recyclerView.layoutManager = LinearLayoutManager(requireContext())
+        // Setup ViewPager2
+        viewPagerAdapter = LoanViewPagerAdapter(requireActivity())
+        viewPager.adapter = viewPagerAdapter
 
+        // Setup TabLayout
+        TabLayoutMediator(tabLayout, viewPager) { tab, position ->
+            tab.text = when (position) {
+                0 -> "Đang mượn"
+                1 -> "Đã trả"
+                else -> ""
+            }
+        }.attach()
+
+        setupToolbar()
         setupSearch()
-        setupFab()
         apiService = ApiClient.getRetrofit(requireContext()).create(ApiService::class.java)
         fetchLoans()
 
         return view
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setHasOptionsMenu(true)
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+        inflater.inflate(R.menu.loan_list_menu, menu)
+        super.onCreateOptionsMenu(menu, inflater)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_loan_menu -> {
+                showToolbarMenu()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    private fun setupToolbar() {
+        // Set up toolbar for fragment
+        (requireActivity() as androidx.appcompat.app.AppCompatActivity).setSupportActionBar(toolbar)
+        toolbar.title = "Quản Lý Mượn Sách"
     }
 
     override fun onResume() {
@@ -80,14 +129,6 @@ class LoanFragment : Fragment() {
         })
     }
 
-    private fun setupFab() {
-        // Show add loan button for all users (temporarily removed admin check)
-        fabAddLoan.visibility = View.VISIBLE
-        fabAddLoan.setOnClickListener {
-            val intent = Intent(requireContext(), AddLoanActivity::class.java)
-            startActivity(intent)
-        }
-    }
 
     private fun fetchLoans() {
         showLoading(true)
@@ -109,22 +150,28 @@ class LoanFragment : Fragment() {
     }
 
     private fun bindLoans(loans: List<Loan>) {
+        // Phân chia loans thành active và returned
+        activeLoans = loans.filter { it.isReturned != true }
+        returnedLoans = loans.filter { it.isReturned == true }
+        
         if (loans.isEmpty()) {
-            recyclerView.visibility = View.GONE
+            viewPager.visibility = View.GONE
             emptyLayout.visibility = View.VISIBLE
         } else {
             emptyLayout.visibility = View.GONE
-            recyclerView.visibility = View.VISIBLE
-            adapter = LoanAdapter(
-                loans = loans,
-                onReturnClick = { loan ->
-                    handleReturnBook(loan)
-                },
-                onExtendClick = { loan ->
-                    handleExtendLoan(loan)
-                }
-            )
-            recyclerView.adapter = adapter
+            viewPager.visibility = View.VISIBLE
+            
+            // Setup active loans fragment
+            val activeFragment = viewPagerAdapter.getActiveFragment()
+            activeFragment.setOnReturnClick { loan -> handleReturnBook(loan) }
+            activeFragment.setOnExtendClick { loan -> handleExtendLoan(loan) }
+            activeFragment.setLoans(activeLoans)
+            
+            // Setup returned loans fragment
+            val returnedFragment = viewPagerAdapter.getReturnedFragment()
+            returnedFragment.setOnReturnClick { loan -> handleReturnBook(loan) }
+            returnedFragment.setOnExtendClick { loan -> handleExtendLoan(loan) }
+            returnedFragment.setLoans(returnedLoans)
         }
     }
 
@@ -135,10 +182,10 @@ class LoanFragment : Fragment() {
             return
         }
         val filtered = allLoans.filter { loan ->
-            VietnameseUtils.matchesVietnamese(loan.book?.title, trimmed) ||
-            VietnameseUtils.matchesVietnamese(loan.book?.author, trimmed) ||
-            VietnameseUtils.matchesVietnamese(loan.user?.fullname, trimmed) ||
-            VietnameseUtils.matchesVietnamese(loan.user?.name, trimmed)
+            loan.book?.title?.contains(trimmed, ignoreCase = true) == true ||
+            loan.book?.author?.contains(trimmed, ignoreCase = true) == true ||
+            loan.user?.fullname?.contains(trimmed, ignoreCase = true) == true ||
+            loan.user?.name?.contains(trimmed, ignoreCase = true) == true
         }
         bindLoans(filtered)
     }
@@ -192,5 +239,33 @@ class LoanFragment : Fragment() {
 
     private fun showLoading(show: Boolean) {
         loadingLayout.visibility = if (show) View.VISIBLE else View.GONE
+    }
+
+    private fun showSelectLoansDialog() {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Chọn phiếu mượn để xóa")
+            .setMessage("Nhấn vào phiếu mượn bạn muốn xóa. Phiếu mượn được chọn sẽ có viền đỏ.")
+            .setPositiveButton("OK", null)
+            .show()
+    }
+
+    private fun showToolbarMenu() {
+        val options = arrayOf("Thêm phiếu mượn", "Xóa phiếu mượn")
+        
+        AlertDialog.Builder(requireContext())
+            .setTitle("Phiếu mượn")
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> {
+                        // Add loan
+                        startActivity(Intent(requireContext(), AddLoanActivity::class.java))
+                    }
+                    1 -> {
+                        // Delete loans
+                        showSelectLoansDialog()
+                    }
+                }
+            }
+            .show()
     }
 }

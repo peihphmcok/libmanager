@@ -2,11 +2,19 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- App theme -->
     <style name="Theme.Libman" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- Customize your theme here -->
-        <item name="colorPrimary">@color/purple_500</item>
-        <item name="colorPrimaryVariant">@color/purple_700</item>
+        <!-- App primary palette -->
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorPrimaryVariant">@color/primary_dark</item>
+        <item name="colorSecondary">@color/accent</item>
         <item name="colorOnPrimary">@android:color/white</item>
-        <item name="android:statusBarColor" tools:targetApi="l">@color/purple_700</item>
-        <item name="android:navigationBarColor">@color/purple_500</item>
+
+        <!-- System bars -->
+        <item name="android:statusBarColor" tools:targetApi="l">@color/primary_dark</item>
+        <item name="android:navigationBarColor">@color/primary</item>
+
+        <!-- Default widget tints -->
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
+        <item name="android:colorBackground">@color/background_light</item>
     </style>
 </resources>

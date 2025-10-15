@@ -10,7 +10,7 @@ import com.example.libman.R
 import com.example.libman.models.Book
 
 class BookAdapter(
-    private val books: List<Book>,
+    private var books: List<Book>,
     private val onItemClick: (Book) -> Unit = {}
 ) : RecyclerView.Adapter<BookAdapter.BookViewHolder>() {
 
@@ -50,4 +50,9 @@ class BookAdapter(
     }
 
     override fun getItemCount(): Int = books.size
+
+    fun updateBooks(newBooks: List<Book>) {
+        books = newBooks
+        notifyDataSetChanged()
+    }
 }

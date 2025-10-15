@@ -3,16 +3,9 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
-        android:id="@+id/action_book_menu"
+        android:id="@+id/action_loan_menu"
         android:icon="@drawable/ic_more_vert"
         android:title="Menu"
         app:showAsAction="always" />
-
-    <item
-        android:id="@+id/action_delete_books"
-        android:icon="@drawable/ic_delete"
-        android:title="Xóa sách"
-        app:showAsAction="always"
-        android:visible="false" />
 
 </menu>

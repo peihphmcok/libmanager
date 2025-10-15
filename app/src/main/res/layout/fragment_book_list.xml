@@ -3,13 +3,23 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F5F5F5">
+    android:background="@color/background_light">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/white"
+        android:background="@color/background_white"
         app:elevation="4dp">
+
+        <!-- Toolbar with Menu -->
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/primary"
+            app:title="Thư Viện Sách"
+            app:titleTextColor="@color/text_white"
+            app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -17,20 +27,11 @@
             android:orientation="vertical"
             android:padding="16dp">
 
-            <!-- Title -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Thư Viện Sách"
-                android:textColor="@color/black"
-                android:textSize="24sp"
-                android:textStyle="bold" />
-
             <!-- Search Bar -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="8dp"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="2dp"
                 app:strokeWidth="0dp">
@@ -47,97 +48,45 @@
     </com.google.android.material.appbar.AppBarLayout>
 
     <!-- Main Content -->
-
-    <!-- FAB Add Book -->
-    <androidx.core.widget.NestedScrollView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:orientation="vertical"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-        <FrameLayout
+        <!-- TabLayout for categories -->
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tabLayout"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:background="@color/background_white"
+            app:tabTextColor="@color/text_secondary"
+            app:tabSelectedTextColor="@color/primary"
+            app:tabIndicatorColor="@color/primary"
+            app:tabMode="scrollable"
+            app:tabGravity="fill"
+            android:elevation="4dp" />
 
-            <!-- Loading -->
-            <LinearLayout
-                android:id="@+id/loadingLayout"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center"
-                android:orientation="vertical"
-                android:padding="48dp"
-                android:visibility="gone">
+        <!-- ViewPager2 for different book categories -->
+        <androidx.viewpager2.widget.ViewPager2
+            android:id="@+id/viewPager"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
 
-                <ProgressBar
-                    android:id="@+id/pbLoading"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:indeterminateTint="@color/purple_700" />
+        <!-- Quick Actions Bottom Sheet -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabQuickActions"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="16dp"
+            android:src="@drawable/ic_add"
+            app:backgroundTint="@color/primary"
+            app:tint="@color/text_white"
+            app:fabSize="normal" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:text="Đang tải..."
-                    android:textColor="@android:color/darker_gray"
-                    android:textSize="14sp" />
-            </LinearLayout>
+    </LinearLayout>
 
-            <!-- Empty State -->
-            <LinearLayout
-                android:id="@+id/emptyLayout"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center"
-                android:orientation="vertical"
-                android:padding="48dp"
-                android:visibility="gone">
-
-                <ImageView
-                    android:layout_width="120dp"
-                    android:layout_height="120dp"
-                    android:alpha="0.3"
-                    android:src="@drawable/ic_book_placeholder" />
-
-                <TextView
-                    android:id="@+id/tvEmpty"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:text="Chưa có sách nào"
-                    android:textColor="@android:color/darker_gray"
-                    android:textSize="16sp"
-                    android:textStyle="italic" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="Nhấn + để thêm sách mới"
-                    android:textColor="@android:color/darker_gray"
-                    android:textSize="14sp" />
-            </LinearLayout>
-
-            <!-- RecyclerView -->
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvBooks"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:clipToPadding="false"
-                android:padding="8dp"
-                android:visibility="gone" />
-        </FrameLayout>
-    </androidx.core.widget.NestedScrollView>
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fabAddBook"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_margin="24dp"
-        android:contentDescription="Thêm sách mới"
-        android:src="@drawable/ic_add"
-        app:fabSize="normal"
-        app:tint="@color/white" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -90,14 +90,16 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
                     android:hint="Thể loại"
-                    app:boxStrokeColor="@color/purple_700"
-                    app:hintTextColor="@color/purple_700">
+                    app:boxStrokeColor="@color/primary"
+                    app:hintTextColor="@color/primary"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
 
-                    <com.google.android.material.textfield.TextInputEditText
+                    <AutoCompleteTextView
                         android:id="@+id/etBookCategory"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="text" />
+                        android:inputType="none"
+                        android:focusable="false" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <!-- Description -->

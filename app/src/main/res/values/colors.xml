@@ -1,10 +1,56 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Primary Color Palette from Image -->
+    <color name="primary_blue">#6A89A7</color>
+    <color name="light_blue">#BDDDFC</color>
+    <color name="medium_blue">#88BDF2</color>
+    <color name="dark_blue">#384959</color>
+    
+    <!-- Legacy colors (keeping for compatibility) -->
     <color name="purple_200">#FFBB86FC</color>
     <color name="purple_500">#FF6200EE</color>
     <color name="purple_700">#FF3700B3</color>
     <color name="teal_200">#FF03DAC5</color>
     <color name="teal_700">#FF018786</color>
+    
+    <!-- Basic colors -->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    
+    <!-- UI Colors using new palette -->
+    <color name="primary">#6A89A7</color>
+    <color name="primary_light">#BDDDFC</color>
+    <color name="primary_dark">#384959</color>
+    <color name="accent">#88BDF2</color>
+    
+    <!-- Background colors -->
+    <color name="background_light">#F8FAFC</color>
+    <color name="background_white">#FFFFFF</color>
+    <color name="background_card">#FFFFFF</color>
+    
+    <!-- Text colors -->
+    <color name="text_primary">#384959</color>
+    <color name="text_secondary">#6A89A7</color>
+    <color name="text_hint">#BDDDFC</color>
+    <color name="text_white">#FFFFFF</color>
+    
+    <!-- Status colors -->
+    <color name="success">#4CAF50</color>
+    <color name="warning">#FF9800</color>
+    <color name="error">#F44336</color>
+    <color name="info">#88BDF2</color>
+    
+    <!-- Additional UI colors -->
+    <color name="divider">#E0E0E0</color>
+    <color name="shadow">#1A000000</color>
+    <color name="overlay">#80000000</color>
+    
+    <!-- Rating and special colors -->
+    <color name="star_rating">#FFC107</color>
+    <color name="featured_badge">#88BDF2</color>
+    <color name="new_badge">#4CAF50</color>
+    
+    <!-- Bottom navigation colors -->
+    <color name="bottom_nav_selected">#6A89A7</color>
+    <color name="bottom_nav_unselected">#BDDDFC</color>
 </resources>

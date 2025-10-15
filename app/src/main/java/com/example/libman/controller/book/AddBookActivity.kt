@@ -1,6 +1,9 @@
 package com.example.libman.controller.book
 
+import android.content.Intent
 import android.os.Bundle
+import android.widget.ArrayAdapter
+import android.widget.AutoCompleteTextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.libman.R
@@ -18,19 +21,26 @@ class AddBookActivity : AppCompatActivity() {
 
     private lateinit var etTitle: TextInputEditText
     private lateinit var etAuthor: TextInputEditText
-    private lateinit var etCategory: TextInputEditText
+    private lateinit var etCategory: AutoCompleteTextView
     private lateinit var etDescription: TextInputEditText
     private lateinit var etIsbn: TextInputEditText
     private lateinit var etPublishedYear: TextInputEditText
     private lateinit var btnSave: MaterialButton
     private lateinit var btnCancel: MaterialButton
     private lateinit var apiService: ApiService
+    
+    private val categories = listOf(
+        "Văn học", "Khoa học", "Lịch sử", "Kịch", "Tiểu thuyết", 
+        "Truyện ngắn", "Thơ", "Triết học", "Kinh tế", "Chính trị",
+        "Khác"
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_add_book)
 
         initViews()
+        setupCategorySpinner()
         setupClickListeners()
         apiService = ApiClient.getRetrofit(this).create(ApiService::class.java)
     }
@@ -44,6 +54,14 @@ class AddBookActivity : AppCompatActivity() {
         etPublishedYear = findViewById(R.id.etBookPublishedYear)
         btnSave = findViewById(R.id.btnSave)
         btnCancel = findViewById(R.id.btnCancel)
+    }
+
+    private fun setupCategorySpinner() {
+        val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, categories)
+        etCategory.setAdapter(adapter)
+        
+        // Set default selection
+        etCategory.setText(categories[0], false)
     }
 
     private fun setupClickListeners() {
@@ -103,7 +121,11 @@ class AddBookActivity : AppCompatActivity() {
                 }
                 
                 Toast.makeText(this@AddBookActivity, "Thêm sách thành công!", Toast.LENGTH_SHORT).show()
-                setResult(RESULT_OK)
+                
+                // Return the added book data
+                val resultIntent = Intent()
+                resultIntent.putExtra("added_book", book)
+                setResult(RESULT_OK, resultIntent)
                 finish()
                 
             } catch (e: Exception) {
