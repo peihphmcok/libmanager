@@ -2,9 +2,8 @@ package com.example.libman.controller.book
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -19,6 +18,10 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.example.libman.utils.TokenManager
 import com.example.libman.utils.VietnameseUtils
 import com.example.libman.utils.TestDataGenerator
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class BookListFragment : Fragment() {
 
@@ -30,6 +33,7 @@ class BookListFragment : Fragment() {
 
     private var allBooks: List<Book> = emptyList()
     private var adapter: BookAdapter? = null
+    private lateinit var apiService: ApiService
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -44,12 +48,25 @@ class BookListFragment : Fragment() {
         fabAddBook = view.findViewById(R.id.fabAddBook)
 
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
+        apiService = ApiClient.getRetrofit(requireContext()).create(ApiService::class.java)
 
         setupSearch()
         setupFab()
+        setupAdapter()
         fetchBooks()
 
         return view
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Refresh data when returning from AddBookActivity
+        // Add a delay to ensure the activity has finished
+        viewLifecycleOwner.lifecycleScope.launchWhenStarted {
+            kotlinx.coroutines.delay(500) // Increased delay
+            android.util.Log.d("BookListFragment", "onResume: Refreshing books data")
+            fetchBooks()
+        }
     }
 
     private fun setupSearch() {
@@ -74,17 +91,87 @@ class BookListFragment : Fragment() {
         }
     }
 
+    private fun setupAdapter() {
+        adapter = BookAdapter(allBooks) { book ->
+            // Handle book click - show context menu
+            showBookContextMenu(book)
+        }
+        recyclerView.adapter = adapter
+    }
+
+    private fun showBookContextMenu(book: Book) {
+        val options = arrayOf("Xem chi tiết", "Chỉnh sửa", "Xóa")
+        
+        AlertDialog.Builder(requireContext())
+            .setTitle(book.title)
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> {
+                        // View details - navigate to book detail
+                        val intent = Intent(requireContext(), BookDetailActivity::class.java)
+                        intent.putExtra("book", book)
+                        startActivity(intent)
+                    }
+                    1 -> {
+                        // Edit book
+                        val intent = Intent(requireContext(), UpdateBookActivity::class.java)
+                        intent.putExtra("book_id", book.id)
+                        intent.putExtra("book", book)
+                        startActivity(intent)
+                    }
+                    2 -> {
+                        // Delete book
+                        showDeleteConfirmation(book)
+                    }
+                }
+            }
+            .show()
+    }
+
+    private fun showDeleteConfirmation(book: Book) {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Xác nhận xóa")
+            .setMessage("Bạn có chắc chắn muốn xóa sách \"${book.title}\"?")
+            .setPositiveButton("Xóa") { _, _ ->
+                deleteBook(book)
+            }
+            .setNegativeButton("Hủy", null)
+            .show()
+    }
+
+    private fun deleteBook(book: Book) {
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    apiService.deleteBook(book.id!!)
+                }
+                
+                android.util.Log.d("BookListFragment", "Book deleted successfully: ${book.title}")
+                fetchBooks() // Refresh the list
+                
+            } catch (e: Exception) {
+                android.util.Log.e("BookListFragment", "Error deleting book: ${e.message}", e)
+            }
+        }
+    }
+
     private fun fetchBooks() {
         showLoading(true)
-        val api = ApiClient.getRetrofit(requireContext()).create(ApiService::class.java)
 
         // Use coroutines with lifecycleScope for suspend ApiService
         viewLifecycleOwner.lifecycleScope.launchWhenStarted {
             try {
-                val books = api.getBooks()
+                android.util.Log.d("BookListFragment", "fetchBooks: Starting API call")
+                val response = apiService.getBooks()
+                val books = response.books ?: emptyList()
                 allBooks = books
                 bindBooks(books)
+                // Log success
+                android.util.Log.d("BookListFragment", "API Success: Loaded ${books.size} books")
+                android.util.Log.d("BookListFragment", "First book: ${books.firstOrNull()?.title}")
             } catch (e: Exception) {
+                // Log error details
+                android.util.Log.e("BookListFragment", "API Error: ${e.message}", e)
                 // Fallback to sample data if API fails
                 allBooks = TestDataGenerator.generateSampleBooks()
                 bindBooks(allBooks)

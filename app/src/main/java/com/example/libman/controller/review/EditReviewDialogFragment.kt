@@ -53,7 +53,6 @@ class EditReviewDialogFragment : DialogFragment() {
         
         currentReview = Review(
             id = reviewId,
-            bookId = bookId,
             rating = rating,
             comment = comment
         )

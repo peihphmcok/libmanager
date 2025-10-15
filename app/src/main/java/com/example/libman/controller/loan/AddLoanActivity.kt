@@ -68,8 +68,8 @@ class AddLoanActivity : AppCompatActivity() {
                     apiService.getUsers()
                 }
                 
-                books = booksResult
-                users = usersResult
+                books = booksResult.books ?: emptyList()
+                users = usersResult.users ?: emptyList()
                 
                 setupAutoComplete()
                 
@@ -131,7 +131,7 @@ class AddLoanActivity : AppCompatActivity() {
         // We'll use BorrowRequest with the selected book
         val borrowRequest = BorrowRequest(
             bookId = book.id!!,
-            dueDate = java.util.Date(System.currentTimeMillis() + 14 * 24 * 60 * 60 * 1000) // 14 days
+            dueDate = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.getDefault()).format(java.util.Date(System.currentTimeMillis() + 14 * 24 * 60 * 60 * 1000)) // 14 days
         )
 
         CoroutineScope(Dispatchers.Main).launch {

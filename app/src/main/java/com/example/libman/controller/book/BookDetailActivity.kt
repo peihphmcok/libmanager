@@ -163,7 +163,7 @@ class BookDetailActivity : AppCompatActivity() {
                 // Create loan request with proper data structure
                 val borrowRequest = BorrowRequest(
                     bookId = bookId!!,
-                    dueDate = java.util.Date(System.currentTimeMillis() + 14 * 24 * 60 * 60 * 1000) // 14 days from now
+                    dueDate = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.getDefault()).format(java.util.Date(System.currentTimeMillis() + 14 * 24 * 60 * 60 * 1000)) // 14 days from now
                 )
 
                 withContext(Dispatchers.IO) {

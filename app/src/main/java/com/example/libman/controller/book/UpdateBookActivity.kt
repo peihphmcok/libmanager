@@ -14,7 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class AddBookActivity : AppCompatActivity() {
+class UpdateBookActivity : AppCompatActivity() {
 
     private lateinit var etTitle: TextInputEditText
     private lateinit var etAuthor: TextInputEditText
@@ -22,16 +22,30 @@ class AddBookActivity : AppCompatActivity() {
     private lateinit var etDescription: TextInputEditText
     private lateinit var etIsbn: TextInputEditText
     private lateinit var etPublishedYear: TextInputEditText
-    private lateinit var btnSave: MaterialButton
+    private lateinit var btnUpdate: MaterialButton
     private lateinit var btnCancel: MaterialButton
     private lateinit var apiService: ApiService
+    
+    private var bookId: String? = null
+    private var currentBook: Book? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_add_book)
+        setContentView(R.layout.activity_update_book)
+
+        // Get book data from intent
+        bookId = intent.getStringExtra("book_id")
+        currentBook = intent.getParcelableExtra("book")
+        
+        if (bookId == null || currentBook == null) {
+            Toast.makeText(this, "Không có thông tin sách", Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
 
         initViews()
         setupClickListeners()
+        populateFields()
         apiService = ApiClient.getRetrofit(this).create(ApiService::class.java)
     }
 
@@ -42,13 +56,24 @@ class AddBookActivity : AppCompatActivity() {
         etDescription = findViewById(R.id.etBookDescription)
         etIsbn = findViewById(R.id.etBookIsbn)
         etPublishedYear = findViewById(R.id.etBookPublishedYear)
-        btnSave = findViewById(R.id.btnSave)
+        btnUpdate = findViewById(R.id.btnUpdate)
         btnCancel = findViewById(R.id.btnCancel)
     }
 
+    private fun populateFields() {
+        currentBook?.let { book ->
+            etTitle.setText(book.title)
+            etAuthor.setText(book.author)
+            etCategory.setText(book.category)
+            etDescription.setText(book.description)
+            etIsbn.setText(book.isbn)
+            etPublishedYear.setText(book.publishedYear?.toString())
+        }
+    }
+
     private fun setupClickListeners() {
-        btnSave.setOnClickListener {
-            saveBook()
+        btnUpdate.setOnClickListener {
+            updateBook()
         }
 
         btnCancel.setOnClickListener {
@@ -56,7 +81,7 @@ class AddBookActivity : AppCompatActivity() {
         }
     }
 
-    private fun saveBook() {
+    private fun updateBook() {
         val title = etTitle.text.toString().trim()
         val author = etAuthor.text.toString().trim()
         val category = etCategory.text.toString().trim()
@@ -83,34 +108,35 @@ class AddBookActivity : AppCompatActivity() {
             }
         } else null
 
-        val book = Book(
+        val updatedBook = Book(
+            id = bookId,
             title = title,
             author = author,
             category = category.ifEmpty { null },
             description = description.ifEmpty { null },
             isbn = isbn.ifEmpty { null },
             publishedYear = publishedYear,
-            available = true
+            available = currentBook?.available ?: true
         )
 
         CoroutineScope(Dispatchers.Main).launch {
             try {
-                btnSave.isEnabled = false
-                btnSave.text = "Đang lưu..."
+                btnUpdate.isEnabled = false
+                btnUpdate.text = "Đang cập nhật..."
                 
                 val response = withContext(Dispatchers.IO) {
-                    apiService.addBook(book)
+                    apiService.updateBook(bookId!!, updatedBook)
                 }
                 
-                Toast.makeText(this@AddBookActivity, "Thêm sách thành công!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@UpdateBookActivity, "Cập nhật sách thành công!", Toast.LENGTH_SHORT).show()
                 setResult(RESULT_OK)
                 finish()
                 
             } catch (e: Exception) {
-                Toast.makeText(this@AddBookActivity, "Lỗi: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@UpdateBookActivity, "Lỗi: ${e.message}", Toast.LENGTH_SHORT).show()
             } finally {
-                btnSave.isEnabled = true
-                btnSave.text = "Lưu"
+                btnUpdate.isEnabled = true
+                btnUpdate.text = "Cập nhật"
             }
         }
     }

@@ -40,12 +40,11 @@ class LoanAdapter(
         
         holder.tvBookTitle.text = loan.book?.title ?: "Không có thông tin"
         holder.tvAuthor.text = loan.book?.author ?: "Không có thông tin"
-        holder.tvBorrowerName.text = loan.user?.name ?: "Không có thông tin"
+        holder.tvBorrowerName.text = loan.user?.fullname ?: loan.user?.name ?: "Không có thông tin"
         
         // Format dates
-        val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-        holder.tvBorrowDate.text = loan.borrowDate?.let { dateFormat.format(it) } ?: "N/A"
-        holder.tvDueDate.text = loan.dueDate?.let { dateFormat.format(it) } ?: "N/A"
+        holder.tvBorrowDate.text = loan.borrowDate ?: "N/A"
+        holder.tvDueDate.text = loan.dueDate ?: "N/A"
         
         // Set status
         when (loan.status?.lowercase()) {

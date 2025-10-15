@@ -56,6 +56,16 @@ class LoanFragment : Fragment() {
         return view
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Refresh data when returning from AddLoanActivity
+        // Add a small delay to ensure the activity has finished
+        viewLifecycleOwner.lifecycleScope.launchWhenStarted {
+            kotlinx.coroutines.delay(100) // Small delay
+            fetchLoans()
+        }
+    }
+
     private fun setupSearch() {
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
@@ -84,7 +94,8 @@ class LoanFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launchWhenStarted {
             try {
-                val loans = apiService.getLoans()
+                val response = apiService.getLoans()
+                val loans = response.loans ?: emptyList()
                 allLoans = loans
                 bindLoans(loans)
             } catch (e: Exception) {
@@ -126,6 +137,7 @@ class LoanFragment : Fragment() {
         val filtered = allLoans.filter { loan ->
             VietnameseUtils.matchesVietnamese(loan.book?.title, trimmed) ||
             VietnameseUtils.matchesVietnamese(loan.book?.author, trimmed) ||
+            VietnameseUtils.matchesVietnamese(loan.user?.fullname, trimmed) ||
             VietnameseUtils.matchesVietnamese(loan.user?.name, trimmed)
         }
         bindLoans(filtered)
@@ -160,7 +172,7 @@ class LoanFragment : Fragment() {
         }
 
         // Extend loan by 7 days
-        val newDueDate = java.util.Date(System.currentTimeMillis() + 7 * 24 * 60 * 60 * 1000)
+        val newDueDate = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.getDefault()).format(java.util.Date(System.currentTimeMillis() + 7 * 24 * 60 * 60 * 1000))
         
         viewLifecycleOwner.lifecycleScope.launchWhenStarted {
             try {

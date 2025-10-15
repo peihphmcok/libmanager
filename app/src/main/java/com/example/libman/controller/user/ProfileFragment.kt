@@ -153,7 +153,7 @@ class ProfileFragment : Fragment() {
     }
     
     private fun displayUserProfile(user: User) {
-        tvUsername.text = user.name ?: "Người dùng"
+        tvUsername.text = user.fullname ?: user.name ?: "Người dùng"
         tvEmail.text = user.email ?: "Không có email"
         tvRole.text = "Role: ${user.role ?: "Unknown"}"
         
@@ -169,7 +169,8 @@ class ProfileFragment : Fragment() {
         lifecycleScope.launch {
             try {
                 // Load borrowed books count
-                val loans = apiService.getUserLoans(userId!!)
+                val response = apiService.getUserLoans(userId!!)
+                val loans = response.loans ?: emptyList()
                 val borrowedCount = loans.count { it.status == "borrowed" }
                 tvBorrowedCount.text = borrowedCount.toString()
                 

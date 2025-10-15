@@ -1,7 +1,10 @@
 package com.example.libman.models
 
+import android.os.Parcelable
 import com.google.gson.annotations.SerializedName
+import kotlinx.parcelize.Parcelize
 
+@Parcelize
 data class Author(
     @SerializedName("_id")
     val id: String? = null,
@@ -23,4 +26,4 @@ data class Author(
     
     @SerializedName("updatedAt")
     val updatedAt: String? = null
-)
+) : Parcelable

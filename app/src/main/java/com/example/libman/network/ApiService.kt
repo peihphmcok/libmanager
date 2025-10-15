@@ -11,6 +11,10 @@ import com.example.libman.models.RegisterResponse
 import com.example.libman.models.ApiResponse
 import com.example.libman.models.Review
 import com.example.libman.models.BorrowRequest
+import com.example.libman.models.BooksResponse
+import com.example.libman.models.AuthorsResponse
+import com.example.libman.models.UsersResponse
+import com.example.libman.models.LoansResponse
 import okhttp3.MultipartBody
 import retrofit2.http.Body
 import retrofit2.http.POST
@@ -32,7 +36,10 @@ interface ApiService {
 
     // Books
     @GET("books")
-    suspend fun getBooks(@Query("search") search: String? = null): List<Book>
+    suspend fun getBooks(
+        @Query("search") search: String? = null,
+        @Query("limit") limit: Int = 100
+    ): BooksResponse
 
     @POST("books")
     suspend fun addBook(@Body book: Book): Book
@@ -56,7 +63,10 @@ interface ApiService {
 
     // Authors
     @GET("authors")
-    suspend fun getAuthors(@Query("search") search: String? = null): List<Author>
+    suspend fun getAuthors(
+        @Query("search") search: String? = null,
+        @Query("limit") limit: Int = 100
+    ): AuthorsResponse
 
     @POST("authors")
     suspend fun addAuthor(@Body author: Author): Author
@@ -72,7 +82,7 @@ interface ApiService {
 
     // Loans
     @GET("loans")
-    suspend fun getLoans(@Query("search") search: String? = null): List<Loan>
+    suspend fun getLoans(@Query("search") search: String? = null): LoansResponse
 
     // Create loan (borrow)
     @POST("loans/borrow")
@@ -84,11 +94,11 @@ interface ApiService {
 
     // Get user loans
     @GET("loans/user/{userId}")
-    suspend fun getUserLoans(@Path("userId") userId: String): List<Loan>
+    suspend fun getUserLoans(@Path("userId") userId: String): LoansResponse
 
     // Users
     @GET("users")
-    suspend fun getUsers(@Query("search") search: String? = null): List<User>
+    suspend fun getUsers(@Query("search") search: String? = null): UsersResponse
 
     @GET("users/{id}")
     suspend fun getUser(@Path("id") id: String): User

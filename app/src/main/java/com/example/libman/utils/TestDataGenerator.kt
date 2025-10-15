@@ -145,28 +145,28 @@ object TestDataGenerator {
     
     fun generateSampleLoans(books: List<Book>, users: List<User>): List<Loan> {
         val now = Date()
-        val calendar = Calendar.getInstance()
+        val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.getDefault())
         
         return listOf(
             Loan(
                 book = books[0],
                 user = users[1],
-                borrowDate = now,
-                dueDate = Date(now.time + 14 * 24 * 60 * 60 * 1000),
+                borrowDate = dateFormat.format(now),
+                dueDate = dateFormat.format(Date(now.time + 14 * 24 * 60 * 60 * 1000)),
                 status = "borrowed"
             ),
             Loan(
                 book = books[1],
                 user = users[2],
-                borrowDate = now,
-                dueDate = Date(now.time + 14 * 24 * 60 * 60 * 1000),
+                borrowDate = dateFormat.format(now),
+                dueDate = dateFormat.format(Date(now.time + 14 * 24 * 60 * 60 * 1000)),
                 status = "borrowed"
             ),
             Loan(
                 book = books[2],
                 user = users[3],
-                borrowDate = Date(now.time - 7 * 24 * 60 * 60 * 1000),
-                dueDate = Date(now.time - 3 * 24 * 60 * 60 * 1000),
+                borrowDate = dateFormat.format(Date(now.time - 7 * 24 * 60 * 60 * 1000)),
+                dueDate = dateFormat.format(Date(now.time - 3 * 24 * 60 * 60 * 1000)),
                 status = "overdue"
             )
         )

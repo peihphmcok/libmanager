@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_add_book"
+        android:icon="@drawable/ic_add"
+        android:title="Thêm sách"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_refresh_books"
+        android:icon="@drawable/ic_refresh"
+        android:title="Làm mới"
+        app:showAsAction="ifRoom" />
+
+</menu>

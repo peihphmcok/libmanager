@@ -1,8 +1,10 @@
 package com.example.libman.models
 
+import android.os.Parcelable
 import com.google.gson.annotations.SerializedName
-import java.util.Date
+import kotlinx.parcelize.Parcelize
 
+@Parcelize
 data class Loan(
     @SerializedName("_id")
     val id: String? = null,
@@ -14,7 +16,7 @@ data class Loan(
     val user: User? = null,
     
     @SerializedName("issueDate")
-    val borrowDate: Date? = null,
+    val borrowDate: String? = null,
     
     @SerializedName("isReturned")
     val isReturned: Boolean? = null,
@@ -23,17 +25,17 @@ data class Loan(
     val fineAmount: Double? = null,
     
     @SerializedName("dueDate")
-    val dueDate: Date? = null,
+    val dueDate: String? = null,
     
     @SerializedName("returnDate")
-    val returnDate: Date? = null,
+    val returnDate: String? = null,
     
     @SerializedName("status")
     val status: String? = null, // "borrowed", "returned", "overdue"
     
     @SerializedName("createdAt")
-    val createdAt: Date? = null,
+    val createdAt: String? = null,
     
     @SerializedName("updatedAt")
-    val updatedAt: Date? = null
-)
+    val updatedAt: String? = null
+) : Parcelable
