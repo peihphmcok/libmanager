@@ -16,6 +16,7 @@ import com.example.libman.models.AuthorsResponse
 import com.example.libman.models.UsersResponse
 import com.example.libman.models.LoansResponse
 import okhttp3.MultipartBody
+import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
 import retrofit2.http.GET
@@ -133,4 +134,22 @@ interface ApiService {
         @Path("id") bookId: String,
         @Path("reviewId") reviewId: String
     ): ApiResponse
+
+    data class ChangePasswordRequest(
+        val userId: String,
+        val oldPassword: String,
+        val newPassword: String
+    )
+
+    @POST("users/change-password")
+    suspend fun changePassword(@Body request: ChangePasswordRequest): Response<Unit>
+
+    data class UpdateUserRequest(
+        val userId: String,
+        val fullname: String?,
+        val email: String?
+    )
+
+    @PUT("users/update")
+    suspend fun updateUser(@Body request: UpdateUserRequest): Response<User>
 }
