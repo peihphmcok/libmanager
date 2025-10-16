@@ -36,7 +36,7 @@ class ProfileFragment : Fragment() {
     private lateinit var ivAvatar: ImageView
     private lateinit var tvBorrowedCount: TextView
     private lateinit var tvTotalBooksCount: TextView
-    
+
     private var currentUser: User? = null
     private var userId: String? = null
 
@@ -77,25 +77,24 @@ class ProfileFragment : Fragment() {
         btnLogout.setOnClickListener {
             logout()
         }
-        
+
         btnEditProfile.setOnClickListener {
-            // TODO: Implement edit profile functionality
-            Toast.makeText(requireContext(), "Chức năng chỉnh sửa thông tin đang được phát triển", Toast.LENGTH_SHORT).show()
+            showEditProfileDialog()
         }
-        
+
         btnChangePassword.setOnClickListener {
-            // TODO: Implement change password functionality
-            Toast.makeText(requireContext(), "Chức năng đổi mật khẩu đang được phát triển", Toast.LENGTH_SHORT).show()
+            showChangePasswordDialog()
         }
-        
+
+
         btnSettings.setOnClickListener {
-            // TODO: Implement settings functionality
             Toast.makeText(requireContext(), "Chức năng cài đặt đang được phát triển", Toast.LENGTH_SHORT).show()
         }
-        
+
+
         btnAbout.setOnClickListener {
-            // TODO: Implement about functionality
-            Toast.makeText(requireContext(), "Thư viện USTH v1.0.0", Toast.LENGTH_SHORT).show()
+            val intent = Intent(requireContext(), AboutAppActivity::class.java)
+            startActivity(intent)
         }
     }
 
@@ -104,7 +103,7 @@ class ProfileFragment : Fragment() {
         tvUsername.text = "Loading..."
         tvEmail.text = "Loading..."
         tvRole.text = "Loading..."
-        
+
         // Get user ID from JWT token
         val token = tokenManager.getToken()
         if (token.isNullOrEmpty()) {
@@ -112,7 +111,7 @@ class ProfileFragment : Fragment() {
             logout()
             return
         }
-        
+
         try {
             // Decode JWT token to get user ID
             val parts = token.split(".")
@@ -127,13 +126,13 @@ class ProfileFragment : Fragment() {
             logout()
             return
         }
-        
+
         if (userId.isNullOrEmpty()) {
             Toast.makeText(requireContext(), "Không tìm thấy thông tin người dùng", Toast.LENGTH_SHORT).show()
             logout()
             return
         }
-        
+
         // Load user profile from API
         lifecycleScope.launch {
             try {
@@ -151,21 +150,21 @@ class ProfileFragment : Fragment() {
             }
         }
     }
-    
+
     private fun displayUserProfile(user: User) {
         tvUsername.text = user.fullname ?: user.name ?: "Người dùng"
         tvEmail.text = user.email ?: "Không có email"
         tvRole.text = "Role: ${user.role ?: "Unknown"}"
-        
+
         // TODO: Load profile picture if available
         // if (!user.profilePicture.isNullOrEmpty()) {
         //     // Load image using Glide or similar library
         // }
     }
-    
+
     private fun loadUserStats() {
         if (userId.isNullOrEmpty()) return
-        
+
         lifecycleScope.launch {
             try {
                 // Load borrowed books count
@@ -173,11 +172,11 @@ class ProfileFragment : Fragment() {
                 val loans = response.loans ?: emptyList()
                 val borrowedCount = loans.count { it.status == "borrowed" }
                 tvBorrowedCount.text = borrowedCount.toString()
-                
+
                 // Load total books count (this would be from a different API)
                 // For now, just show placeholder
                 tvTotalBooksCount.text = "0"
-                
+
             } catch (e: Exception) {
                 tvBorrowedCount.text = "0"
                 tvTotalBooksCount.text = "0"
@@ -189,10 +188,130 @@ class ProfileFragment : Fragment() {
         // Clear stored token and role
         tokenManager.saveToken("")
         tokenManager.saveRole("")
-        
+
         // Navigate to login
         val intent = Intent(requireContext(), LoginActivity::class.java)
         startActivity(intent)
         requireActivity().finish()
     }
+    private fun showChangePasswordDialog() {
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.password_change, null)
+        val etOldPassword = dialogView.findViewById<android.widget.EditText>(R.id.etOldPassword)
+        val etNewPassword = dialogView.findViewById<android.widget.EditText>(R.id.etNewPassword)
+        val etConfirmPassword = dialogView.findViewById<android.widget.EditText>(R.id.etConfirmPassword)
+
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Đổi mật khẩu")
+            .setView(dialogView)
+            .setPositiveButton("Xác nhận", null)
+            .setNegativeButton("Hủy", null)
+            .create()
+
+        dialog.setOnShowListener {
+            val positiveButton = dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)
+            positiveButton.setOnClickListener {
+                val oldPassword = etOldPassword.text.toString().trim()
+                val newPassword = etNewPassword.text.toString().trim()
+                val confirmPassword = etConfirmPassword.text.toString().trim()
+
+                if (oldPassword.isEmpty() || newPassword.isEmpty() || confirmPassword.isEmpty()) {
+                    Toast.makeText(requireContext(), "Vui lòng nhập đầy đủ thông tin", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+
+                if (newPassword != confirmPassword) {
+                    Toast.makeText(requireContext(), "Mật khẩu xác nhận không khớp", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+
+                // ✅ Call API to change password
+                lifecycleScope.launch {
+                    try {
+                        val request = ApiService.ChangePasswordRequest(
+                            userId = userId!!,
+                            oldPassword = oldPassword,
+                            newPassword = newPassword
+                        )
+                        val response = apiService.changePassword(request)
+
+                        if (response.isSuccessful) {
+                            Toast.makeText(requireContext(), "Đổi mật khẩu thành công", Toast.LENGTH_SHORT).show()
+                            dialog.dismiss()
+                        } else {
+                            Toast.makeText(requireContext(), "Lỗi: ${response.code()}", Toast.LENGTH_SHORT).show()
+                        }
+                    } catch (e: Exception) {
+                        Toast.makeText(requireContext(), "Lỗi: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+            }
+        }
+
+        dialog.show()
+    }
+    private fun showEditProfileDialog() {
+        if (currentUser == null || userId == null) {
+            Toast.makeText(requireContext(), "Không tìm thấy thông tin người dùng", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.profile_edit, null)
+        val etFullname = dialogView.findViewById<android.widget.EditText>(R.id.etFullname)
+        val etEmail = dialogView.findViewById<android.widget.EditText>(R.id.etEmail)
+
+        etFullname.setText(currentUser?.fullname ?: "")
+        etEmail.setText(currentUser?.email ?: "")
+
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Chỉnh sửa thông tin")
+            .setView(dialogView)
+            .setPositiveButton("Lưu", null)
+            .setNegativeButton("Hủy", null)
+            .create()
+
+        dialog.setOnShowListener {
+            val positiveButton = dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)
+            positiveButton.setOnClickListener {
+                val newName = etFullname.text.toString().trim()
+                val newEmail = etEmail.text.toString().trim()
+
+                if (newName.isEmpty() || newEmail.isEmpty()) {
+                    Toast.makeText(requireContext(), "Vui lòng nhập đầy đủ thông tin", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+
+                lifecycleScope.launch {
+                    try {
+                        val response = apiService.updateUser(
+                            ApiService.UpdateUserRequest(
+                                userId = userId!!,
+                                fullname = newName,
+                                email = newEmail
+                            )
+                        )
+
+                        if (response.isSuccessful) {
+                            val updatedUser = response.body()
+                            if (updatedUser != null) {
+                                currentUser = updatedUser
+                                displayUserProfile(updatedUser)
+                            }
+                            Toast.makeText(requireContext(), "Cập nhật thành công", Toast.LENGTH_SHORT).show()
+                            dialog.dismiss()
+                        } else {
+                            Toast.makeText(requireContext(), "Lỗi cập nhật: ${response.code()}", Toast.LENGTH_SHORT).show()
+                        }
+                    } catch (e: Exception) {
+                        Toast.makeText(requireContext(), "Lỗi: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+
+        dialog.show()
+    }
+
+
+
 }

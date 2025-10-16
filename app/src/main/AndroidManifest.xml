@@ -15,6 +15,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Libman">
+        <activity android:name=".controller.user.AboutAppActivity" />
         <activity
             android:name=".controller.loan.LoanDetailActivity"
             android:exported="false" />
@@ -60,7 +61,7 @@
         <activity
             android:name=".controller.home.HomeActivityWithViewPager"
             android:exported="false" />
-        
+
         <activity
             android:name=".controller.auth.LoginActivity"
             android:exported="true" >
