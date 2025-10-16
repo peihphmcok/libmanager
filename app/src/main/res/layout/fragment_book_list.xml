@@ -28,22 +28,13 @@
             android:padding="16dp">
 
             <!-- Search Bar -->
-            <com.google.android.material.card.MaterialCardView
+            <androidx.appcompat.widget.SearchView
+                android:id="@+id/svBooks"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp"
-                app:strokeWidth="0dp">
-
-                <androidx.appcompat.widget.SearchView
-                    android:id="@+id/svBooks"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:background="@android:color/transparent"
-                    android:queryHint="Tìm kiếm sách theo tên hoặc tác giả"
-                    app:queryBackground="@android:color/transparent" />
-            </com.google.android.material.card.MaterialCardView>
+                android:queryHint="Tìm kiếm sách theo tên, tác giả, thể loại..."
+                app:iconifiedByDefault="false" />
         </LinearLayout>
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -54,18 +45,31 @@
         android:orientation="vertical"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-        <!-- TabLayout for categories -->
-        <com.google.android.material.tabs.TabLayout
-            android:id="@+id/tabLayout"
+        <!-- Enhanced TabLayout for categories -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/background_white"
-            app:tabTextColor="@color/text_secondary"
-            app:tabSelectedTextColor="@color/primary"
-            app:tabIndicatorColor="@color/primary"
-            app:tabMode="scrollable"
-            app:tabGravity="fill"
-            android:elevation="4dp" />
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginTop="8dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp"
+            app:strokeWidth="0dp"
+            app:cardBackgroundColor="@color/background_white">
+
+            <com.google.android.material.tabs.TabLayout
+                android:id="@+id/tabLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:padding="8dp"
+                app:tabTextColor="@color/text_secondary"
+                app:tabSelectedTextColor="@color/primary"
+                app:tabIndicatorColor="@color/primary"
+                app:tabIndicatorHeight="3dp"
+                app:tabMode="scrollable"
+                app:tabGravity="fill" />
+        </com.google.android.material.card.MaterialCardView>
 
         <!-- ViewPager2 for different book categories -->
         <androidx.viewpager2.widget.ViewPager2

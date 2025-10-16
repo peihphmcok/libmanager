@@ -1,18 +1,29 @@
 package com.example.libman.controller.book
 
+import android.app.Activity
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.provider.MediaStore
+import android.widget.ImageView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.example.libman.R
 import com.example.libman.models.Book
 import com.example.libman.network.ApiClient
 import com.example.libman.network.ApiService
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import java.io.File
 
 class UpdateBookActivity : AppCompatActivity() {
 
@@ -26,8 +37,25 @@ class UpdateBookActivity : AppCompatActivity() {
     private lateinit var btnCancel: MaterialButton
     private lateinit var apiService: ApiService
     
+    // Book cover upload
+    private lateinit var ivBookCover: ImageView
+    private lateinit var cardBookCover: MaterialCardView
+    private var selectedCoverUri: Uri? = null
+    
     private var bookId: String? = null
     private var currentBook: Book? = null
+    
+    // Image picker - using GetContent instead of StartActivityForResult
+    private val imagePickerLauncher = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { imageUri ->
+        if (imageUri != null) {
+            android.util.Log.d("UpdateBookActivity", "Image selected: $imageUri")
+            selectedCoverUri = imageUri
+            ivBookCover.setImageURI(imageUri)
+            Toast.makeText(this, "Đã chọn ảnh thành công!", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,6 +86,10 @@ class UpdateBookActivity : AppCompatActivity() {
         etPublishedYear = findViewById(R.id.etBookPublishedYear)
         btnUpdate = findViewById(R.id.btnUpdate)
         btnCancel = findViewById(R.id.btnCancel)
+        
+        // Book cover views
+        ivBookCover = findViewById(R.id.ivBookCover)
+        cardBookCover = findViewById(R.id.cardBookCover)
     }
 
     private fun populateFields() {
@@ -78,6 +110,11 @@ class UpdateBookActivity : AppCompatActivity() {
 
         btnCancel.setOnClickListener {
             finish()
+        }
+        
+        // Book cover click listener
+        cardBookCover.setOnClickListener {
+            openImagePicker()
         }
     }
 
@@ -128,6 +165,16 @@ class UpdateBookActivity : AppCompatActivity() {
                     apiService.updateBook(bookId!!, updatedBook)
                 }
                 
+                // Upload book cover if selected
+                selectedCoverUri?.let { coverUri ->
+                    try {
+                        uploadBookCover(bookId!!, coverUri)
+                    } catch (e: Exception) {
+                        android.util.Log.e("UpdateBookActivity", "Error uploading book cover: ${e.message}", e)
+                        Toast.makeText(this@UpdateBookActivity, "Sách đã được cập nhật nhưng lỗi khi upload ảnh bìa", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                
                 Toast.makeText(this@UpdateBookActivity, "Cập nhật sách thành công!", Toast.LENGTH_SHORT).show()
                 setResult(RESULT_OK)
                 finish()
@@ -137,6 +184,44 @@ class UpdateBookActivity : AppCompatActivity() {
             } finally {
                 btnUpdate.isEnabled = true
                 btnUpdate.text = "Cập nhật"
+            }
+        }
+    }
+    
+    private fun openImagePicker() {
+        try {
+            android.util.Log.d("UpdateBookActivity", "Opening image picker...")
+            imagePickerLauncher.launch("image/*")
+        } catch (e: Exception) {
+            android.util.Log.e("UpdateBookActivity", "Error opening image picker: ${e.message}", e)
+            Toast.makeText(this, "Lỗi khi mở chọn ảnh: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+    
+    private fun uploadBookCover(bookId: String, coverUri: Uri) {
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                // Get file from URI
+                val inputStream = contentResolver.openInputStream(coverUri)
+                val file = File(cacheDir, "book_cover_${System.currentTimeMillis()}.jpg")
+                file.outputStream().use { output ->
+                    inputStream?.copyTo(output)
+                }
+                
+                // Create multipart body
+                val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
+                val body = MultipartBody.Part.createFormData("cover", file.name, requestFile)
+                
+                // Upload to API
+                val response = withContext(Dispatchers.IO) {
+                    apiService.uploadBookCover(bookId, body)
+                }
+                
+                android.util.Log.d("UpdateBookActivity", "Book cover uploaded successfully")
+                
+            } catch (e: Exception) {
+                android.util.Log.e("UpdateBookActivity", "Error uploading book cover: ${e.message}", e)
+                throw e
             }
         }
     }

@@ -75,11 +75,17 @@ class EditBookActivity : AppCompatActivity() {
     private fun loadBook() {
         CoroutineScope(Dispatchers.Main).launch {
             try {
-                val book = withContext(Dispatchers.IO) {
+                val response = withContext(Dispatchers.IO) {
                     apiService.getBook(bookId!!)
                 }
-                currentBook = book
-                populateFields(book)
+                val book = response.book
+                if (book != null) {
+                    currentBook = book
+                    populateFields(book)
+                } else {
+                    Toast.makeText(this@EditBookActivity, "Không tìm thấy thông tin sách", Toast.LENGTH_SHORT).show()
+                    finish()
+                }
             } catch (e: Exception) {
                 Toast.makeText(this@EditBookActivity, "Lỗi khi tải thông tin sách: ${e.message}", Toast.LENGTH_SHORT).show()
                 finish()

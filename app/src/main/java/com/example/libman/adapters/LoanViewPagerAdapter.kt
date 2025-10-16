@@ -8,19 +8,25 @@ import com.example.libman.controller.loan.ReturnedLoanFragment
 
 class LoanViewPagerAdapter(fragmentActivity: FragmentActivity) : FragmentStateAdapter(fragmentActivity) {
 
-    private val activeFragment = ActiveLoanFragment()
-    private val returnedFragment = ReturnedLoanFragment()
+    private var activeFragment: ActiveLoanFragment? = null
+    private var returnedFragment: ReturnedLoanFragment? = null
 
     override fun getItemCount(): Int = 2
 
     override fun createFragment(position: Int): Fragment {
         return when (position) {
-            0 -> activeFragment
-            1 -> returnedFragment
-            else -> activeFragment
+            0 -> {
+                activeFragment = ActiveLoanFragment()
+                activeFragment!!
+            }
+            1 -> {
+                returnedFragment = ReturnedLoanFragment()
+                returnedFragment!!
+            }
+            else -> ActiveLoanFragment()
         }
     }
 
-    fun getActiveFragment(): ActiveLoanFragment = activeFragment
-    fun getReturnedFragment(): ReturnedLoanFragment = returnedFragment
+    fun getActiveFragment(): ActiveLoanFragment? = activeFragment
+    fun getReturnedFragment(): ReturnedLoanFragment? = returnedFragment
 }

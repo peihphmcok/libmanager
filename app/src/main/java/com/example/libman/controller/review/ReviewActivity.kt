@@ -94,9 +94,10 @@ class ReviewActivity : AppCompatActivity() {
     private fun loadReviews() {
         lifecycleScope.launch {
             try {
-                reviews = withContext(Dispatchers.IO) {
+                val response = withContext(Dispatchers.IO) {
                     apiService.getBookReviews(bookId!!)
                 }
+                reviews = response.reviews ?: emptyList()
                 // Sort reviews by creation date (newest first)
                 reviews = reviews.sortedByDescending { it.createdAt }
                 adapter?.updateReviews(reviews)
@@ -105,8 +106,9 @@ class ReviewActivity : AppCompatActivity() {
                 showReviewSummary()
             } catch (e: Exception) {
                 Toast.makeText(this@ReviewActivity, "Lỗi khi tải đánh giá: ${e.message}", Toast.LENGTH_SHORT).show()
-                // Show sample reviews if API fails
-                showSampleReviews()
+                reviews = emptyList()
+                adapter?.updateReviews(reviews)
+                showReviewSummary()
             }
         }
     }
@@ -124,34 +126,6 @@ class ReviewActivity : AppCompatActivity() {
         }
     }
 
-    private fun showSampleReviews() {
-        // Show sample reviews when API fails
-        reviews = listOf(
-            Review(
-                id = "sample1",
-                user = com.example.libman.models.User(name = "Nguyễn Văn A"),
-                rating = 5,
-                comment = "Sách rất hay, nội dung sâu sắc và ý nghĩa. Tôi rất thích cách tác giả xây dựng nhân vật.",
-                createdAt = "2024-01-15T10:30:00Z"
-            ),
-            Review(
-                id = "sample2", 
-                user = com.example.libman.models.User(name = "Trần Thị B"),
-                rating = 4,
-                comment = "Cuốn sách khá thú vị, tuy nhiên một số phần hơi dài dòng. Nhìn chung là đáng đọc.",
-                createdAt = "2024-01-10T14:20:00Z"
-            ),
-            Review(
-                id = "sample3",
-                user = com.example.libman.models.User(name = "Lê Văn C"),
-                rating = 5,
-                comment = "Tuyệt vời! Đây là một trong những cuốn sách hay nhất tôi từng đọc. Rất khuyến khích mọi người đọc.",
-                createdAt = "2024-01-05T09:15:00Z"
-            )
-        )
-        adapter?.updateReviews(reviews)
-        showReviewSummary()
-    }
 
     private fun showAddReviewDialog() {
         val dialog = AddReviewDialogFragment.newInstance(bookId!!)
@@ -179,7 +153,7 @@ class ReviewActivity : AppCompatActivity() {
 
     private fun deleteReview(review: Review) {
         if (review.id == null) {
-            Toast.makeText(this, "Không thể xóa đánh giá mẫu", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Không thể xóa đánh giá", Toast.LENGTH_SHORT).show()
             return
         }
 

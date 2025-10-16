@@ -3,6 +3,9 @@
     xmlns:tools="http://schemas.android.com/tools">
     <!-- Cho phép app truy cập Internet -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Cho phép đọc ảnh từ gallery -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 
     <application
         android:allowBackup="true"
@@ -15,6 +18,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Libman">
+        <activity android:name=".controller.user.AboutAppActivity" />
         <activity
             android:name=".controller.loan.LoanDetailActivity"
             android:exported="false" />
@@ -60,7 +64,7 @@
         <activity
             android:name=".controller.home.HomeActivityWithViewPager"
             android:exported="false" />
-        
+
         <activity
             android:name=".controller.auth.LoginActivity"
             android:exported="true" >

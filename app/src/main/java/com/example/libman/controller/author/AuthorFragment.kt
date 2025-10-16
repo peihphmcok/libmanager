@@ -196,7 +196,7 @@ class AuthorFragment : Fragment() {
         intent.putExtra("author_bio", author.bio)
         intent.putExtra("author_birth_year", author.birthYear ?: 0)
         intent.putExtra("author_nationality", author.nationality)
-        intent.putExtra("author_books_count", 5) // Mock data
+        intent.putExtra("author_books_count", 0) // Will be loaded from API
         startActivity(intent)
     }
 
@@ -282,8 +282,8 @@ class AuthorFragment : Fragment() {
             } catch (e: Exception) {
                 // Log error details
                 android.util.Log.e("AuthorFragment", "API Error: ${e.message}", e)
-                // Fallback to sample data if API fails
-                allAuthors = getSampleAuthors()
+                Toast.makeText(requireContext(), "Lỗi khi tải danh sách tác giả: ${e.message}", Toast.LENGTH_SHORT).show()
+                allAuthors = emptyList()
                 bindAuthors(allAuthors)
             } finally {
                 showLoading(false)
@@ -305,14 +305,15 @@ class AuthorFragment : Fragment() {
     private fun filterAuthors(query: String?) {
         val trimmed = query?.trim().orEmpty()
         if (trimmed.isEmpty()) {
-            bindAuthors(allAuthors)
+            adapter.updateAuthors(allAuthors)
             return
         }
         val filtered = allAuthors.filter { author ->
             author.name?.contains(trimmed, ignoreCase = true) == true || 
-            author.bio?.contains(trimmed, ignoreCase = true) == true
+            author.bio?.contains(trimmed, ignoreCase = true) == true ||
+            author.nationality?.contains(trimmed, ignoreCase = true) == true
         }
-        bindAuthors(filtered)
+        adapter.updateAuthors(filtered)
     }
 
     private fun showLoading(show: Boolean) {
@@ -330,40 +331,6 @@ class AuthorFragment : Fragment() {
         }
     }
 
-    private fun getSampleAuthors(): List<Author> {
-        return listOf(
-            Author(
-                name = "Nguyễn Du",
-                bio = "Đại thi hào dân tộc Việt Nam, tác giả của Truyện Kiều",
-                nationality = "Việt Nam",
-                birthYear = 1765
-            ),
-            Author(
-                name = "Nam Cao",
-                bio = "Nhà văn hiện thực xuất sắc của văn học Việt Nam",
-                nationality = "Việt Nam", 
-                birthYear = 1915
-            ),
-            Author(
-                name = "Tô Hoài",
-                bio = "Nhà văn nổi tiếng với tác phẩm Dế Mèn phiêu lưu ký",
-                nationality = "Việt Nam",
-                birthYear = 1920
-            ),
-            Author(
-                name = "William Shakespeare",
-                bio = "Nhà thơ và nhà viết kịch vĩ đại nhất của nước Anh",
-                nationality = "Anh",
-                birthYear = 1564
-            ),
-            Author(
-                name = "Leo Tolstoy",
-                bio = "Tiểu thuyết gia Nga nổi tiếng với Chiến tranh và Hòa bình",
-                nationality = "Nga",
-                birthYear = 1828
-            )
-        )
-    }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
@@ -471,4 +438,5 @@ class AuthorFragment : Fragment() {
             }
             .show()
     }
+
 }

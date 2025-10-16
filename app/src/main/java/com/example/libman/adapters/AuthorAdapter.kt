@@ -10,7 +10,7 @@ import com.example.libman.R
 import com.example.libman.models.Author
 
 class AuthorAdapter(
-    private val authors: List<Author>,
+    private var authors: List<Author>,
     private val onItemClick: (Author) -> Unit = {},
     private val onMenuClick: (Author) -> Unit = {},
     private val isSelectionMode: Boolean = false,
@@ -60,4 +60,9 @@ class AuthorAdapter(
     }
 
     override fun getItemCount(): Int = authors.size
+    
+    fun updateAuthors(newAuthors: List<Author>) {
+        authors = newAuthors
+        notifyDataSetChanged()
+    }
 }

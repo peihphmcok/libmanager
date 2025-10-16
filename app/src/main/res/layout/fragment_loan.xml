@@ -28,20 +28,13 @@
             android:padding="16dp">
 
             <!-- Search Bar -->
-            <com.google.android.material.card.MaterialCardView
+            <androidx.appcompat.widget.SearchView
+                android:id="@+id/svLoans"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp">
-
-                <androidx.appcompat.widget.SearchView
-                    android:id="@+id/svLoans"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:queryHint="Tìm kiếm theo tên sách hoặc người mượn"
-                    app:queryBackground="@android:color/transparent" />
-            </com.google.android.material.card.MaterialCardView>
+                android:queryHint="Tìm kiếm theo tên sách hoặc người mượn"
+                app:iconifiedByDefault="false" />
         </LinearLayout>
     </com.google.android.material.appbar.AppBarLayout>
 

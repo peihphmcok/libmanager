@@ -28,8 +28,12 @@
 
                 <!-- Avatar -->
                 <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/avatarCard"
                     android:layout_width="100dp"
                     android:layout_height="100dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
                     app:cardCornerRadius="50dp"
                     app:cardElevation="4dp">
 
@@ -42,6 +46,15 @@
                         android:src="@android:drawable/ic_menu_myplaces"
                         app:tint="@color/primary" />
                 </com.google.android.material.card.MaterialCardView>
+                
+                <!-- Change Avatar Hint -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Nhấn để thay đổi ảnh đại diện"
+                    android:textColor="#E0E0E0"
+                    android:textSize="10sp" />
 
                 <!-- User Info -->
                 <TextView

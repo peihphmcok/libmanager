@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -90,12 +91,20 @@ class BookTabFragment : Fragment() {
         
         CoroutineScope(Dispatchers.Main).launch {
             try {
+                android.util.Log.d("BookTabFragment", "Loading books for category: $category")
+                
                 val response = apiService.getBooks()
                 allBooks = response.books ?: emptyList()
+                
+                android.util.Log.d("BookTabFragment", "Books response: ${allBooks.size} books found for category: $category")
+                android.util.Log.d("BookTabFragment", "Total books: ${response.total}")
+                android.util.Log.d("BookTabFragment", "Current page: ${response.currentPage}")
+                
                 bindBooks()
             } catch (e: Exception) {
-                // Use sample data if API fails
-                allBooks = getSampleBooks()
+                android.util.Log.e("BookTabFragment", "Error loading books for category $category: ${e.message}", e)
+                Toast.makeText(requireContext(), "Lỗi khi tải danh sách sách: ${e.message}", Toast.LENGTH_LONG).show()
+                allBooks = emptyList()
                 bindBooks()
             } finally {
                 showLoading(false)
@@ -135,10 +144,14 @@ class BookTabFragment : Fragment() {
                 books = books,
                 onBookClick = { book ->
                     if (!isSelectionMode) {
-                        val intent = Intent(requireContext(), BookDetailActivity::class.java)
-                        intent.putExtra("book_id", book.id)
-                        intent.putExtra("book_title", book.title)
-                        startActivity(intent)
+                        if (book.id != null) {
+                            val intent = Intent(requireContext(), BookDetailActivity::class.java)
+                            intent.putExtra("book_id", book.id)
+                            intent.putExtra("book_title", book.title)
+                            startActivity(intent)
+                        } else {
+                            Toast.makeText(requireContext(), "Không thể xem chi tiết sách này", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 },
                 onBookLongClick = { book ->
@@ -169,17 +182,9 @@ class BookTabFragment : Fragment() {
         this.selectedBooks = selectedBooks
         bindBooks() // Refresh the adapters
     }
-
-    private fun getSampleBooks(): List<Book> {
-        return listOf(
-            Book(id = "1", title = "Truyện Kiều", author = "Nguyễn Du", category = "Văn học", available = true),
-            Book(id = "2", title = "Chí Phèo", author = "Nam Cao", category = "Văn học", available = true),
-            Book(id = "3", title = "Dế Mèn phiêu lưu ký", author = "Tô Hoài", category = "Văn học", available = false),
-            Book(id = "4", title = "Romeo và Juliet", author = "William Shakespeare", category = "Kịch", available = true),
-            Book(id = "5", title = "Chiến tranh và Hòa bình", author = "Leo Tolstoy", category = "Tiểu thuyết", available = true),
-            Book(id = "6", title = "Lịch sử Việt Nam", author = "Trần Trọng Kim", category = "Lịch sử", available = true),
-            Book(id = "7", title = "Vật lý cơ bản", author = "Nguyễn Văn A", category = "Khoa học", available = false),
-            Book(id = "8", title = "Toán học cao cấp", author = "Lê Văn B", category = "Khoa học", available = true)
-        )
+    
+    fun refreshBooks() {
+        loadBooks()
     }
+
 }

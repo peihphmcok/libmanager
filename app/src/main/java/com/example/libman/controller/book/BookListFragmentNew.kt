@@ -2,14 +2,18 @@ package com.example.libman.controller.book
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -21,7 +25,8 @@ import com.example.libman.models.Book
 import com.example.libman.network.ApiClient
 import com.example.libman.network.ApiService
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.card.MaterialCardView
+import androidx.appcompat.widget.SearchView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -30,7 +35,7 @@ import kotlinx.coroutines.withContext
 class BookListFragmentNew : Fragment() {
 
     private lateinit var toolbar: androidx.appcompat.widget.Toolbar
-    private lateinit var etSearch: TextInputEditText
+    private lateinit var searchView: SearchView
     private lateinit var loadingLayout: View
     private lateinit var emptyLayout: View
     
@@ -130,7 +135,7 @@ class BookListFragmentNew : Fragment() {
 
     private fun initViews(view: View) {
         toolbar = view.findViewById(R.id.toolbar)
-        etSearch = view.findViewById(R.id.etSearch)
+        searchView = view.findViewById(R.id.searchView)
         loadingLayout = view.findViewById(R.id.loadingLayout)
         emptyLayout = view.findViewById(R.id.emptyLayout)
         
@@ -162,60 +167,42 @@ class BookListFragmentNew : Fragment() {
     }
 
     private fun setupSearch() {
-        etSearch.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) {
-                showSearchSuggestions()
+        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                return false
             }
-        }
-        
-        etSearch.addTextChangedListener(object : android.text.TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: android.text.Editable?) {
-                val query = s?.toString()?.trim() ?: ""
-                if (query.length >= 2) {
-                    showSearchSuggestions()
+
+            override fun onQueryTextChange(newText: String?): Boolean {
+                val query = newText?.trim() ?: ""
+                if (query.isNotEmpty()) {
+                    filterBooks(query)
                 } else {
-                    hideSearchSuggestions()
+                    showAllBooks()
                 }
+                return true
             }
         })
     }
 
-    private fun showSearchSuggestions() {
-        val query = etSearch.text.toString().trim()
-        if (query.length < 2) return
-
-        val suggestions = allBooks.filter { book ->
+    private fun filterBooks(query: String) {
+        val filteredBooks = allBooks.filter { book ->
             book.title?.contains(query, ignoreCase = true) == true ||
             book.author?.contains(query, ignoreCase = true) == true ||
             book.category?.contains(query, ignoreCase = true) == true
-        }.take(5)
-
-        if (suggestions.isNotEmpty()) {
-            // Hiện suggestions trong một popup hoặc dropdown
-            showSearchResults(suggestions)
         }
-    }
-
-    private fun hideSearchSuggestions() {
-        // Ẩn suggestions
-    }
-
-    private fun showSearchResults(books: List<Book>) {
-        val bookTitles = books.map { "${it.title} - ${it.author}" }.toTypedArray()
         
-        AlertDialog.Builder(requireContext())
-            .setTitle("Kết quả tìm kiếm")
-            .setItems(bookTitles) { _, which ->
-                val selectedBook = books[which]
-                val intent = Intent(requireContext(), BookDetailActivity::class.java)
-                intent.putExtra("book_id", selectedBook.id)
-                intent.putExtra("book_title", selectedBook.title)
-                startActivity(intent)
-            }
-            .setNegativeButton("Đóng", null)
-            .show()
+        // Update all sections with filtered results
+        setupRecyclerView(rvFeaturedBooks, filteredBooks.take(5)) // Featured books
+        setupRecyclerView(rvRecentBooks, filteredBooks.take(8))   // Recent books
+        
+        // Apply same filtering logic as bindBooks
+        val availableCategories = filteredBooks.mapNotNull { it.category }.distinct().sorted()
+        createDynamicCategorySections(availableCategories, filteredBooks)
+    }
+    
+    private fun showAllBooks() {
+        // Restore original book lists
+        bindBooks()
     }
 
     private fun setupClickListeners() {
@@ -232,12 +219,32 @@ class BookListFragmentNew : Fragment() {
         
         CoroutineScope(Dispatchers.Main).launch {
             try {
+                android.util.Log.d("BookListFragmentNew", "Loading books from server...")
+                
                 val response = apiService.getBooks()
                 allBooks = response.books ?: emptyList()
+                
+                android.util.Log.d("BookListFragmentNew", "Books response: ${allBooks.size} books found")
+                android.util.Log.d("BookListFragmentNew", "Total books: ${response.total}")
+                android.util.Log.d("BookListFragmentNew", "Current page: ${response.currentPage}")
+                
+                // Log all books for debugging
+                allBooks.forEachIndexed { index, book ->
+                    android.util.Log.d("BookListFragmentNew", "Book $index: ${book.title} - Category: ${book.category}")
+                }
+                
+                // Log categories found
+                val categories = allBooks.mapNotNull { it.category }.distinct()
+                android.util.Log.d("BookListFragmentNew", "Categories found: $categories")
+                
                 bindBooks()
+                
+                Toast.makeText(requireContext(), "Đã tải ${allBooks.size} sách với ${categories.size} thể loại", Toast.LENGTH_SHORT).show()
+                
             } catch (e: Exception) {
-                // Use sample data if API fails
-                allBooks = getSampleBooks()
+                android.util.Log.e("BookListFragmentNew", "Error loading books: ${e.message}", e)
+                Toast.makeText(requireContext(), "Lỗi khi tải danh sách sách: ${e.message}", Toast.LENGTH_LONG).show()
+                allBooks = emptyList()
                 bindBooks()
             } finally {
                 showLoading(false)
@@ -261,17 +268,137 @@ class BookListFragmentNew : Fragment() {
         val recentBooks = allBooks.take(8)
         setupRecyclerView(rvRecentBooks, recentBooks)
 
-        // Literature books
-        val literatureBooks = allBooks.filter { it.category?.contains("Văn học", ignoreCase = true) == true }
-        setupRecyclerView(rvLiteratureBooks, literatureBooks)
-
-        // Science books
-        val scienceBooks = allBooks.filter { it.category?.contains("Khoa học", ignoreCase = true) == true }
-        setupRecyclerView(rvScienceBooks, scienceBooks)
-
-        // History books
-        val historyBooks = allBooks.filter { it.category?.contains("Lịch sử", ignoreCase = true) == true }
-        setupRecyclerView(rvHistoryBooks, historyBooks)
+        // Dynamic category books based on available categories
+        val availableCategories = allBooks.mapNotNull { it.category }.distinct().sorted()
+        android.util.Log.d("BookListFragmentNew", "Available categories for sections: $availableCategories")
+        
+        // Create dynamic sections for all categories
+        createDynamicCategorySections(availableCategories, allBooks)
+    }
+    
+    private fun createDynamicCategorySections(categories: List<String>, books: List<Book>) {
+        // Create sections for each category that has books
+        val categoriesWithBooks = categories.filter { category ->
+            books.any { it.category == category }
+        }
+        
+        android.util.Log.d("BookListFragmentNew", "Categories with books: $categoriesWithBooks")
+        
+        // Create dynamic sections for all categories
+        createDynamicLayout(categoriesWithBooks, books)
+    }
+    
+    private fun createDynamicLayout(categories: List<String>, books: List<Book>) {
+        // Get the main container from the layout
+        val mainContainer = view?.findViewById<LinearLayout>(R.id.mainContainer)
+        if (mainContainer == null) {
+            android.util.Log.e("BookListFragmentNew", "Main container not found!")
+            return
+        }
+        
+        // Clear existing category sections (keep featured, recent, search)
+        val sectionsToRemove = mutableListOf<View>()
+        for (i in 0 until mainContainer.childCount) {
+            val child = mainContainer.getChildAt(i)
+            if (child is MaterialCardView && child.id in listOf(R.id.literatureCard, R.id.scienceCard, R.id.historyCard)) {
+                sectionsToRemove.add(child)
+            }
+        }
+        sectionsToRemove.forEach { mainContainer.removeView(it) }
+        
+        // Create sections for each category
+        categories.forEachIndexed { index, category ->
+            val categoryBooks = books.filter { it.category == category }
+            if (categoryBooks.isNotEmpty()) {
+                val categorySection = createCategorySection(category, categoryBooks)
+                mainContainer.addView(categorySection)
+                android.util.Log.d("BookListFragmentNew", "Created section for '$category': ${categoryBooks.size} books")
+            }
+        }
+        
+        android.util.Log.d("BookListFragmentNew", "Created ${categories.size} category sections")
+    }
+    
+    private fun createCategorySection(categoryName: String, books: List<Book>): MaterialCardView {
+        val context = requireContext()
+        val inflater = LayoutInflater.from(context)
+        
+        // Create the card container
+        val cardView = MaterialCardView(context).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                bottomMargin = 16.dpToPx(context)
+            }
+            radius = 12f
+            elevation = 4f
+        }
+        
+        // Create the content
+        val contentView = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(16.dpToPx(context), 16.dpToPx(context), 16.dpToPx(context), 16.dpToPx(context))
+        }
+        
+        // Add header
+        val headerView = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 0, 0, 12.dpToPx(context))
+        }
+        
+        val titleView = TextView(context).apply {
+            text = categoryName
+            textSize = 18f
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+            setTextColor(context.getColor(R.color.text_primary))
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        
+        val countView = TextView(context).apply {
+            text = "${books.size} sách"
+            textSize = 14f
+            setTextColor(context.getColor(R.color.text_secondary))
+        }
+        
+        headerView.addView(titleView)
+        headerView.addView(countView)
+        
+        // Add RecyclerView
+        val recyclerView = RecyclerView(context).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
+        }
+        
+        // Setup RecyclerView with adapter
+        val adapter = HorizontalBookAdapter(
+            books = books,
+            onBookClick = { book ->
+                if (book.id != null) {
+                    val intent = Intent(context, BookDetailActivity::class.java)
+                    intent.putExtra("book_id", book.id)
+                    intent.putExtra("book_title", book.title)
+                    startActivity(intent)
+                } else {
+                    Toast.makeText(context, "Không thể xem chi tiết sách này", Toast.LENGTH_SHORT).show()
+                }
+            }
+        )
+        recyclerView.adapter = adapter
+        
+        contentView.addView(headerView)
+        contentView.addView(recyclerView)
+        cardView.addView(contentView)
+        
+        return cardView
+    }
+    
+    private fun Int.dpToPx(context: Context): Int {
+        return (this * context.resources.displayMetrics.density).toInt()
     }
 
     private fun setupRecyclerView(recyclerView: RecyclerView, books: List<Book>) {
@@ -281,10 +408,14 @@ class BookListFragmentNew : Fragment() {
                 books = books,
                 onBookClick = { book ->
                     if (!isSelectionMode) {
-                        val intent = Intent(requireContext(), BookDetailActivity::class.java)
-                        intent.putExtra("book_id", book.id)
-                        intent.putExtra("book_title", book.title)
-                        startActivity(intent)
+                        if (book.id != null) {
+                            val intent = Intent(requireContext(), BookDetailActivity::class.java)
+                            intent.putExtra("book_id", book.id)
+                            intent.putExtra("book_title", book.title)
+                            startActivity(intent)
+                        } else {
+                            Toast.makeText(requireContext(), "Không thể xem chi tiết sách này", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 },
                 onBookLongClick = { book ->
@@ -413,45 +544,4 @@ class BookListFragmentNew : Fragment() {
         emptyLayout.visibility = if (show) View.VISIBLE else View.GONE
     }
 
-    private fun getSampleBooks(): List<Book> {
-        return listOf(
-            // Văn học
-            Book(id = "1", title = "Truyện Kiều", author = "Nguyễn Du", category = "Văn học", available = true),
-            Book(id = "2", title = "Chí Phèo", author = "Nam Cao", category = "Văn học", available = true),
-            Book(id = "3", title = "Số đỏ", author = "Vũ Trọng Phụng", category = "Văn học", available = false),
-            Book(id = "4", title = "Dế Mèn phiêu lưu ký", author = "Tô Hoài", category = "Văn học", available = true),
-            Book(id = "5", title = "Vợ nhặt", author = "Kim Lân", category = "Văn học", available = true),
-            Book(id = "6", title = "Những ngôi sao xa xôi", author = "Lê Minh Khuê", category = "Văn học", available = false),
-            
-            // Khoa học
-            Book(id = "7", title = "Vật lý cơ bản", author = "Nguyễn Văn A", category = "Khoa học", available = true),
-            Book(id = "8", title = "Hóa học đại cương", author = "Trần Thị B", category = "Khoa học", available = true),
-            Book(id = "9", title = "Toán học cao cấp", author = "Hoàng Văn E", category = "Khoa học", available = true),
-            Book(id = "10", title = "Sinh học phân tử", author = "Phạm Thị F", category = "Khoa học", available = false),
-            Book(id = "11", title = "Tin học ứng dụng", author = "Lê Văn G", category = "Khoa học", available = true),
-            
-            // Lịch sử
-            Book(id = "12", title = "Lịch sử Việt Nam", author = "Lê Văn C", category = "Lịch sử", available = true),
-            Book(id = "13", title = "Thế giới cổ đại", author = "Phạm Thị D", category = "Lịch sử", available = false),
-            Book(id = "14", title = "Lịch sử thế giới", author = "Nguyễn Thị H", category = "Lịch sử", available = true),
-            Book(id = "15", title = "Việt Nam sử lược", author = "Trần Trọng Kim", category = "Lịch sử", available = true),
-            
-            // Kịch
-            Book(id = "16", title = "Vũ Như Tô", author = "Nguyễn Huy Tưởng", category = "Kịch", available = true),
-            Book(id = "17", title = "Bắc Sơn", author = "Nguyễn Huy Tưởng", category = "Kịch", available = false),
-            
-            // Tiểu thuyết
-            Book(id = "18", title = "Đất rừng phương Nam", author = "Đoàn Giỏi", category = "Tiểu thuyết", available = true),
-            Book(id = "19", title = "Tuổi thơ dữ dội", author = "Phùng Quán", category = "Tiểu thuyết", available = true),
-            Book(id = "20", title = "Những người con gái của mẹ", author = "Nguyễn Thị Thu Huệ", category = "Tiểu thuyết", available = false),
-            
-            // Thơ
-            Book(id = "21", title = "Thơ Hồ Xuân Hương", author = "Hồ Xuân Hương", category = "Thơ", available = true),
-            Book(id = "22", title = "Thơ Nguyễn Du", author = "Nguyễn Du", category = "Thơ", available = true),
-            
-            // Triết học
-            Book(id = "23", title = "Triết học phương Đông", author = "Nguyễn Văn I", category = "Triết học", available = true),
-            Book(id = "24", title = "Đạo đức học", author = "Trần Thị J", category = "Triết học", available = false)
-        )
-    }
 }

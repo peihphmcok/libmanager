@@ -40,7 +40,7 @@ class BookListFragment : Fragment() {
     private lateinit var apiService: ApiService
     private lateinit var viewPagerAdapter: BookViewPagerAdapter
     
-    private val categories = listOf("Tất cả", "Văn học", "Khoa học", "Lịch sử", "Kịch", "Tiểu thuyết")
+    private var categories = listOf("Tất cả", "Văn học", "Khoa học", "Lịch sử", "Kịch", "Tiểu thuyết")
     
     // Selection mode for deletion
     private var isSelectionMode = false
@@ -62,7 +62,7 @@ class BookListFragment : Fragment() {
 
         setupToolbar()
         setupSearch()
-        setupViewPager()
+        loadCategoriesAndSetupViewPager()
         setupFab()
 
         return view
@@ -105,6 +105,57 @@ class BookListFragment : Fragment() {
         toolbar.title = "Thư Viện Sách"
     }
 
+    private fun loadCategoriesAndSetupViewPager() {
+        viewLifecycleOwner.lifecycleScope.launchWhenStarted {
+            try {
+                android.util.Log.d("BookListFragment", "Loading books from server...")
+                
+                val response = apiService.getBooks()
+                val books = response.books ?: emptyList()
+                
+                android.util.Log.d("BookListFragment", "Books response: ${books.size} books found")
+                android.util.Log.d("BookListFragment", "Total books: ${response.total}")
+                android.util.Log.d("BookListFragment", "Current page: ${response.currentPage}")
+                
+                // Log all books for debugging
+                books.forEachIndexed { index, book ->
+                    android.util.Log.d("BookListFragment", "Book $index: ${book.title} - Category: ${book.category}")
+                }
+                
+                // Extract unique categories from books
+                val uniqueCategories = books
+                    .mapNotNull { it.category }
+                    .filter { it.isNotBlank() }
+                    .distinct()
+                    .sorted()
+                
+                android.util.Log.d("BookListFragment", "Unique categories: $uniqueCategories")
+                
+                // Add "Tất cả" at the beginning
+                categories = if (uniqueCategories.isEmpty()) {
+                    android.util.Log.w("BookListFragment", "No categories found, using defaults")
+                    listOf("Tất cả", "Văn học", "Khoa học", "Lịch sử", "Kịch", "Tiểu thuyết")
+                } else {
+                    listOf("Tất cả") + uniqueCategories
+                }
+                
+                android.util.Log.d("BookListFragment", "Final categories: $categories")
+                
+                // Setup ViewPager with loaded categories
+                setupViewPager()
+                
+                Toast.makeText(requireContext(), "Đã tải ${categories.size} thể loại", Toast.LENGTH_SHORT).show()
+                
+            } catch (e: Exception) {
+                android.util.Log.e("BookListFragment", "Error loading books: ${e.message}", e)
+                // Use default categories if API fails
+                categories = listOf("Tất cả", "Văn học", "Khoa học", "Lịch sử", "Kịch", "Tiểu thuyết")
+                setupViewPager()
+                Toast.makeText(requireContext(), "Không thể tải danh sách thể loại: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+    
     private fun setupViewPager() {
         viewPagerAdapter = BookViewPagerAdapter(requireActivity(), categories)
         viewPager.adapter = viewPagerAdapter
@@ -140,10 +191,26 @@ class BookListFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        // Refresh ViewPager adapter when returning from other activities
+        // Refresh data from server when returning from other activities
         viewLifecycleOwner.lifecycleScope.launchWhenStarted {
             kotlinx.coroutines.delay(500)
-            viewPagerAdapter.notifyDataSetChanged()
+            refreshData()
+        }
+    }
+    
+    private fun refreshData() {
+        // Notify all fragments to refresh their data
+        for (i in 0 until viewPagerAdapter.itemCount) {
+            try {
+                val fragment = childFragmentManager.fragments.find { 
+                    it is BookTabFragment && it.arguments?.getString("category") == categories[i] 
+                }
+                if (fragment is BookTabFragment) {
+                    fragment.refreshBooks()
+                }
+            } catch (e: Exception) {
+                // Handle exception if needed
+            }
         }
     }
 
@@ -283,5 +350,6 @@ class BookListFragment : Fragment() {
             }
             .show()
     }
+
 
 }

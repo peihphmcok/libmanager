@@ -63,13 +63,37 @@ class LoanFragment : Fragment() {
         viewPager.adapter = viewPagerAdapter
 
         // Setup TabLayout
-        TabLayoutMediator(tabLayout, viewPager) { tab, position ->
+        val mediator = TabLayoutMediator(tabLayout, viewPager) { tab, position ->
             tab.text = when (position) {
                 0 -> "Đang mượn"
                 1 -> "Đã trả"
                 else -> ""
             }
-        }.attach()
+        }
+        mediator.attach()
+        
+        // Add tab selection listener to refresh data when switching tabs
+        tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab?) {
+                // Refresh data when tab is selected
+                updateCurrentTabData()
+            }
+            
+            override fun onTabUnselected(tab: TabLayout.Tab?) {}
+            override fun onTabReselected(tab: TabLayout.Tab?) {}
+        })
+        
+        // Add ViewPager2 callback to refresh data when page changes
+        viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                super.onPageSelected(position)
+                // Add a small delay to ensure fragment is ready
+                viewLifecycleOwner.lifecycleScope.launchWhenStarted {
+                    kotlinx.coroutines.delay(100)
+                    updateCurrentTabData()
+                }
+            }
+        })
 
         setupToolbar()
         setupSearch()
@@ -152,7 +176,20 @@ class LoanFragment : Fragment() {
     private fun bindLoans(loans: List<Loan>) {
         // Phân chia loans thành active và returned
         activeLoans = loans.filter { it.isReturned != true }
+            .sortedBy { parseDate(it.borrowDate) } // Sắp xếp theo ngày mượn (oldest first)
+        
         returnedLoans = loans.filter { it.isReturned == true }
+            .sortedByDescending { parseDate(it.returnDate) } // Sắp xếp theo ngày trả (newest first)
+        
+        android.util.Log.d("LoanFragment", "Active loans sorted by borrow date (oldest first): ${activeLoans.size}")
+        activeLoans.forEachIndexed { index, loan ->
+            android.util.Log.d("LoanFragment", "Active loan $index: ${loan.book?.title} - Borrow: ${loan.borrowDate}")
+        }
+        
+        android.util.Log.d("LoanFragment", "Returned loans sorted by return date (newest first): ${returnedLoans.size}")
+        returnedLoans.forEachIndexed { index, loan ->
+            android.util.Log.d("LoanFragment", "Returned loan $index: ${loan.book?.title} - Return: ${loan.returnDate}")
+        }
         
         if (loans.isEmpty()) {
             viewPager.visibility = View.GONE
@@ -163,22 +200,31 @@ class LoanFragment : Fragment() {
             
             // Setup active loans fragment
             val activeFragment = viewPagerAdapter.getActiveFragment()
-            activeFragment.setOnReturnClick { loan -> handleReturnBook(loan) }
-            activeFragment.setOnExtendClick { loan -> handleExtendLoan(loan) }
-            activeFragment.setLoans(activeLoans)
+            if (activeFragment != null) {
+                activeFragment.setOnReturnClick { loan -> handleReturnBook(loan) }
+                activeFragment.setOnExtendClick { loan -> handleExtendLoan(loan) }
+                activeFragment.setLoans(activeLoans)
+            }
             
             // Setup returned loans fragment
             val returnedFragment = viewPagerAdapter.getReturnedFragment()
-            returnedFragment.setOnReturnClick { loan -> handleReturnBook(loan) }
-            returnedFragment.setOnExtendClick { loan -> handleExtendLoan(loan) }
-            returnedFragment.setLoans(returnedLoans)
+            if (returnedFragment != null) {
+                returnedFragment.setOnReturnClick { loan -> handleReturnBook(loan) }
+                returnedFragment.setOnExtendClick { loan -> handleExtendLoan(loan) }
+                returnedFragment.setLoans(returnedLoans)
+            }
         }
     }
 
     private fun filterLoans(query: String?) {
         val trimmed = query?.trim().orEmpty()
         if (trimmed.isEmpty()) {
-            bindLoans(allLoans)
+            // Restore original data with sorting
+            activeLoans = allLoans.filter { it.isReturned != true }
+                .sortedBy { parseDate(it.borrowDate) } // Sắp xếp theo ngày mượn (oldest first)
+            returnedLoans = allLoans.filter { it.isReturned == true }
+                .sortedByDescending { parseDate(it.returnDate) } // Sắp xếp theo ngày trả (newest first)
+            updateCurrentTabData()
             return
         }
         val filtered = allLoans.filter { loan ->
@@ -187,7 +233,12 @@ class LoanFragment : Fragment() {
             loan.user?.fullname?.contains(trimmed, ignoreCase = true) == true ||
             loan.user?.name?.contains(trimmed, ignoreCase = true) == true
         }
-        bindLoans(filtered)
+        // Update filtered data with sorting
+        activeLoans = filtered.filter { it.isReturned != true }
+            .sortedBy { parseDate(it.borrowDate) } // Sắp xếp theo ngày mượn (oldest first)
+        returnedLoans = filtered.filter { it.isReturned == true }
+            .sortedByDescending { parseDate(it.returnDate) } // Sắp xếp theo ngày trả (newest first)
+        updateCurrentTabData()
     }
 
     private fun handleReturnBook(loan: Loan) {
@@ -267,5 +318,53 @@ class LoanFragment : Fragment() {
                 }
             }
             .show()
+    }
+    
+    private fun updateCurrentTabData() {
+        val currentPosition = viewPager.currentItem
+        android.util.Log.d("LoanFragment", "updateCurrentTabData: position=$currentPosition")
+        
+        when (currentPosition) {
+            0 -> {
+                // Active loans tab
+                android.util.Log.d("LoanFragment", "Updating active loans: ${activeLoans.size} loans")
+                val activeFragment = viewPagerAdapter.getActiveFragment()
+                if (activeFragment != null) {
+                    activeFragment.setLoans(activeLoans)
+                } else {
+                    android.util.Log.w("LoanFragment", "Active fragment is null")
+                }
+            }
+            1 -> {
+                // Returned loans tab
+                android.util.Log.d("LoanFragment", "Updating returned loans: ${returnedLoans.size} loans")
+                val returnedFragment = viewPagerAdapter.getReturnedFragment()
+                if (returnedFragment != null) {
+                    returnedFragment.setLoans(returnedLoans)
+                } else {
+                    android.util.Log.w("LoanFragment", "Returned fragment is null")
+                }
+            }
+        }
+    }
+    
+    private fun parseDate(dateString: String?): Long {
+        if (dateString.isNullOrEmpty()) return 0L
+        
+        return try {
+            // Try to parse ISO date format (e.g., "2024-01-15T10:30:00.000Z")
+            val isoFormat = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.getDefault())
+            isoFormat.timeZone = java.util.TimeZone.getTimeZone("UTC")
+            isoFormat.parse(dateString)?.time ?: 0L
+        } catch (e: Exception) {
+            try {
+                // Try to parse simple date format (e.g., "2024-01-15")
+                val simpleFormat = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+                simpleFormat.parse(dateString)?.time ?: 0L
+            } catch (e2: Exception) {
+                android.util.Log.w("LoanFragment", "Failed to parse date: $dateString", e2)
+                0L
+            }
+        }
     }
 }

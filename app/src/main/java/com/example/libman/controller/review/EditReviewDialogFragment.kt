@@ -8,6 +8,7 @@ import com.example.libman.R
 import com.example.libman.models.Review
 import com.example.libman.network.ApiClient
 import com.example.libman.network.ApiService
+import com.example.libman.utils.TokenManager
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import android.widget.RatingBar
@@ -24,6 +25,7 @@ class EditReviewDialogFragment : DialogFragment() {
     private lateinit var btnSave: MaterialButton
     private lateinit var btnCancel: MaterialButton
     private lateinit var apiService: ApiService
+    private lateinit var tokenManager: TokenManager
     
     var onReviewUpdated: ((Review) -> Unit)? = null
     
@@ -58,6 +60,7 @@ class EditReviewDialogFragment : DialogFragment() {
         )
         
         apiService = ApiClient.getRetrofit(requireContext()).create(ApiService::class.java)
+        tokenManager = TokenManager(requireContext())
     }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
@@ -111,6 +114,9 @@ class EditReviewDialogFragment : DialogFragment() {
             return
         }
 
+        val userId = tokenManager.getUserId()
+        val user = if (userId != null) com.example.libman.models.User(id = userId) else null
+        
         val updatedReview = currentReview?.copy(
             rating = rating,
             comment = comment.ifEmpty { null }

@@ -4,10 +4,10 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import android.widget.LinearLayout
 import androidx.recyclerview.widget.RecyclerView
 import com.example.libman.R
 import com.example.libman.models.Book
+import com.google.android.material.chip.Chip
 
 class BookAdapter(
     private var books: List<Book>,
@@ -18,9 +18,8 @@ class BookAdapter(
         val title: TextView = itemView.findViewById(R.id.tvTitle)
         val author: TextView = itemView.findViewById(R.id.tvAuthor)
         val description: TextView = itemView.findViewById(R.id.tvDescription)
-        val available: TextView = itemView.findViewById(R.id.tvAvailable)
-        val statusContainer: LinearLayout = itemView.findViewById(R.id.statusContainer)
-        val statusIndicator: View = itemView.findViewById(R.id.statusIndicator)
+        val rating: TextView = itemView.findViewById(R.id.tvBookRating)
+        val statusContainer: Chip = itemView.findViewById(R.id.statusContainer)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BookViewHolder {
@@ -32,16 +31,15 @@ class BookAdapter(
         val book = books[position]
         holder.title.text = book.title ?: "Không có tiêu đề"
         holder.author.text = book.author ?: "Không có tác giả"
-        holder.description.text = book.description ?: "Không có mô tả"
-        val ctx = holder.itemView.context
+        holder.description.text = book.category ?: "Không có thể loại"
+        holder.rating.text = "4.5" // Placeholder rating
+        
         if (book.available == true) {
-            holder.available.text = "Có sẵn"
-            holder.statusContainer.setBackgroundResource(R.drawable.bg_status_available)
-            holder.statusIndicator.setBackgroundResource(R.drawable.circle_green)
+            holder.statusContainer.text = "Có sẵn"
+            holder.statusContainer.setChipBackgroundColorResource(R.color.primary)
         } else {
-            holder.available.text = "Không có sẵn"
-            holder.statusContainer.setBackgroundResource(R.drawable.bg_status_unavailable)
-            holder.statusIndicator.setBackgroundResource(R.drawable.circle_red)
+            holder.statusContainer.text = "Đã mượn"
+            holder.statusContainer.setChipBackgroundColorResource(R.color.error)
         }
         
         holder.itemView.setOnClickListener {

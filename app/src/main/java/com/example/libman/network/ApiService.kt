@@ -1,21 +1,26 @@
 package com.example.libman.network
 
 import com.example.libman.models.Book
+import com.example.libman.models.BookResponse
 import com.example.libman.models.Author
 import com.example.libman.models.Loan
 import com.example.libman.models.User
+import com.example.libman.models.UserResponse
 import com.example.libman.models.LoginRequest
 import com.example.libman.models.LoginResponse
 import com.example.libman.models.RegisterRequest
 import com.example.libman.models.RegisterResponse
 import com.example.libman.models.ApiResponse
 import com.example.libman.models.Review
+import com.example.libman.models.ReviewResponse
+import com.example.libman.models.ReviewsResponse
 import com.example.libman.models.BorrowRequest
 import com.example.libman.models.BooksResponse
 import com.example.libman.models.AuthorsResponse
 import com.example.libman.models.UsersResponse
 import com.example.libman.models.LoansResponse
 import okhttp3.MultipartBody
+import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
 import retrofit2.http.GET
@@ -38,17 +43,18 @@ interface ApiService {
     @GET("books")
     suspend fun getBooks(
         @Query("search") search: String? = null,
-        @Query("limit") limit: Int = 100
+        @Query("limit") limit: Int = 1000,
+        @Query("page") page: Int = 1
     ): BooksResponse
 
     @POST("books")
     suspend fun addBook(@Body book: Book): Book
 
     @GET("books/{id}")
-    suspend fun getBook(@Path("id") id: String): Book
+    suspend fun getBook(@Path("id") id: String): BookResponse
 
     @PUT("books/{id}")
-    suspend fun updateBook(@Path("id") id: String, @Body book: Book): Book
+    suspend fun updateBook(@Path("id") id: String, @Body book: Book): BookResponse
 
     @DELETE("books/{id}")
     suspend fun deleteBook(@Path("id") id: String): Unit
@@ -101,7 +107,7 @@ interface ApiService {
     suspend fun getUsers(@Query("search") search: String? = null): UsersResponse
 
     @GET("users/{id}")
-    suspend fun getUser(@Path("id") id: String): User
+    suspend fun getUser(@Path("id") id: String): UserResponse
 
     @PUT("users/{id}")
     suspend fun updateUser(@Path("id") id: String, @Body user: User): User
@@ -116,10 +122,10 @@ interface ApiService {
 
     // Reviews for a book
     @GET("books/{id}/reviews")
-    suspend fun getBookReviews(@Path("id") bookId: String): List<Review>
+    suspend fun getBookReviews(@Path("id") bookId: String): ReviewsResponse
 
     @POST("books/{id}/reviews")
-    suspend fun addBookReview(@Path("id") bookId: String, @Body review: Review): Review
+    suspend fun addBookReview(@Path("id") bookId: String, @Body review: Review): ReviewResponse
 
     @PUT("books/{id}/reviews/{reviewId}")
     suspend fun updateBookReview(
@@ -133,4 +139,22 @@ interface ApiService {
         @Path("id") bookId: String,
         @Path("reviewId") reviewId: String
     ): ApiResponse
+
+    data class ChangePasswordRequest(
+        val userId: String,
+        val oldPassword: String,
+        val newPassword: String
+    )
+
+    @POST("users/change-password")
+    suspend fun changePassword(@Body request: ChangePasswordRequest): Response<Unit>
+
+    data class UpdateUserRequest(
+        val userId: String,
+        val fullname: String?,
+        val email: String?
+    )
+
+    @PUT("users/update")
+    suspend fun updateUser(@Body request: UpdateUserRequest): Response<User>
 }

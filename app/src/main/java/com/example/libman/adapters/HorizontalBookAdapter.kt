@@ -38,8 +38,8 @@ class HorizontalBookAdapter(
         holder.tvBookTitle.text = book.title ?: "Không có tiêu đề"
         holder.tvBookAuthor.text = book.author ?: "Không có tác giả"
         
-        // Set rating (mock data for now)
-        holder.tvBookRating.text = "4.5 (12)"
+        // Set rating (placeholder for now - will be updated when review data is available)
+        holder.tvBookRating.text = "Chưa có đánh giá"
         
         // Set availability
         if (book.available == true) {
@@ -87,7 +87,7 @@ class HorizontalBookAdapter(
     override fun getItemCount(): Int = books.size
 
     fun updateBooks(newBooks: List<Book>) {
-        // This would be used to update the adapter with new data
-        // For now, we'll recreate the adapter when data changes
+        // This method can be used to update the adapter with new data
+        // The adapter will be recreated when data changes in the fragment
     }
 }

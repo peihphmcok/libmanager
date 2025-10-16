@@ -57,17 +57,17 @@ class BookDetailActivity : AppCompatActivity() {
         apiService = ApiClient.getRetrofit(this).create(ApiService::class.java)
         tokenManager = TokenManager(this)
 
-        // Get book data from intent
+        // Get book ID from intent
         bookId = intent.getStringExtra("book_id")
-        val bookTitle = intent.getStringExtra("book_title")
         
-        if (bookTitle != null) {
-            // For now, show sample data based on title
-            showSampleBookData(bookTitle)
-        } else {
-            // Load book from API if ID is provided
-            bookId?.let { loadBook(it) }
+        if (bookId == null) {
+            Toast.makeText(this, "Không tìm thấy ID sách", Toast.LENGTH_SHORT).show()
+            finish()
+            return
         }
+        
+        // Load book from API
+        loadBook(bookId!!)
         
         // Load reviews for this book
         loadBookReviews()
@@ -120,52 +120,74 @@ class BookDetailActivity : AppCompatActivity() {
         }
     }
 
-    private fun showSampleBookData(title: String) {
-        // Show sample data based on book title
-        val sampleBooks = getSampleBooks()
-        val book = sampleBooks.find { it.title == title }
-        
-        if (book != null) {
-            currentBook = book
-            displayBook(book)
-        } else {
-            Toast.makeText(this, "Không tìm thấy thông tin sách", Toast.LENGTH_SHORT).show()
-            finish()
-        }
-    }
 
     private fun loadBook(id: String) {
         CoroutineScope(Dispatchers.Main).launch {
             try {
-                val book = withContext(Dispatchers.IO) {
+                android.util.Log.d("BookDetailActivity", "Loading book with ID: $id")
+                
+                // Show loading state
+                tvTitle.text = "Đang tải..."
+                tvAuthor.text = "Đang tải thông tin sách..."
+                tvDescription.text = "Đang tải..."
+                tvIsbn.text = "Đang tải..."
+                tvPublishedYear.text = "Đang tải..."
+                
+                val response = withContext(Dispatchers.IO) {
                     apiService.getBook(id)
                 }
-                currentBook = book
-                displayBook(book)
+                val book = response.book
+                if (book != null) {
+                    android.util.Log.d("BookDetailActivity", "Book loaded: ${book.title}")
+                    currentBook = book
+                    displayBook(book)
+                } else {
+                    android.util.Log.e("BookDetailActivity", "Book is null in response")
+                    Toast.makeText(this@BookDetailActivity, "Không tìm thấy thông tin sách", Toast.LENGTH_LONG).show()
+                }
             } catch (e: Exception) {
-                Toast.makeText(this@BookDetailActivity, "Lỗi khi tải thông tin sách: ${e.message}", Toast.LENGTH_SHORT).show()
-                finish()
+                android.util.Log.e("BookDetailActivity", "Error loading book: ${e.message}", e)
+                Toast.makeText(this@BookDetailActivity, "Lỗi khi tải thông tin sách: ${e.message}", Toast.LENGTH_LONG).show()
+                
+                // Show error state
+                tvTitle.text = "Lỗi tải dữ liệu"
+                tvAuthor.text = "Không thể tải thông tin sách"
+                tvDescription.text = "Vui lòng kiểm tra kết nối mạng và thử lại"
+                tvIsbn.text = "N/A"
+                tvPublishedYear.text = "N/A"
+                chipAvailability.text = "Không xác định"
             }
         }
     }
 
     private fun displayBook(book: Book) {
+        android.util.Log.d("BookDetailActivity", "Displaying book: ${book.title}")
+        
         tvTitle.text = book.title ?: "Không có tiêu đề"
         tvAuthor.text = book.author ?: "Không có tác giả"
-        tvDescription.text = book.category ?: "Không có thể loại"
-        tvIsbn.text = book.coverImage ?: "Không có ảnh bìa"
-        tvPublishedYear.text = book.publishedYear?.toString() ?: "Không xác định"
+        tvDescription.text = book.description ?: "Không có mô tả"
+        tvIsbn.text = book.isbn ?: "Không có ISBN"
+        tvPublishedYear.text = book.publishedYear?.toString() ?: "Không có năm xuất bản"
 
-        // Set availability status - for now, assume all books are available
-        chipAvailability.text = "Có sẵn"
-        chipAvailability.setChipBackgroundColorResource(R.color.purple_700)
-        btnBorrow.isEnabled = true
+        // Set availability status based on actual data
+        if (book.available == true) {
+            chipAvailability.text = "Có sẵn"
+            chipAvailability.setChipBackgroundColorResource(R.color.purple_700)
+            btnBorrow.isEnabled = true
+        } else {
+            chipAvailability.text = "Không có sẵn"
+            chipAvailability.setChipBackgroundColorResource(R.color.error)
+            btnBorrow.isEnabled = false
+        }
 
         // Show edit button for all users (temporarily removed admin check)
         btnEdit.visibility = View.VISIBLE
         
         // Show reviews button for all users
         btnReviews.visibility = View.VISIBLE
+        
+        // Update toolbar title
+        supportActionBar?.title = book.title ?: "Chi tiết sách"
     }
 
     private fun borrowBook() {
@@ -174,14 +196,13 @@ class BookDetailActivity : AppCompatActivity() {
             return
         }
 
-        // For now, assume all books are available
-        // if (currentBook?.available != true) {
-        //     Toast.makeText(this, "Sách này hiện không có sẵn", Toast.LENGTH_SHORT).show()
-        //     return
-        // }
+        if (currentBook?.available != true) {
+            Toast.makeText(this, "Sách này hiện không có sẵn", Toast.LENGTH_SHORT).show()
+            return
+        }
 
         if (bookId == null) {
-            Toast.makeText(this, "Không thể mượn sách mẫu", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Không thể mượn sách", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -238,33 +259,59 @@ class BookDetailActivity : AppCompatActivity() {
             .setTitle("Chỉnh sửa thông tin sách")
             .setView(dialogView)
             .setPositiveButton("Lưu") { _, _ ->
-                // Update book data
-                val updatedBook = currentBook?.copy(
-                    title = etTitle.text.toString(),
-                    author = etAuthor.text.toString(),
-                    category = etCategory.text.toString(),
-                    description = etDescription.text.toString(),
-                    isbn = etIsbn.text.toString(),
-                    publishedYear = etPublishedYear.text.toString().toIntOrNull()
+                // Update book data via API
+                updateBook(
+                    etTitle.text.toString(),
+                    etAuthor.text.toString(),
+                    etCategory.text.toString(),
+                    etDescription.text.toString(),
+                    etIsbn.text.toString(),
+                    etPublishedYear.text.toString()
                 )
-                
-                if (updatedBook != null) {
-                    currentBook = updatedBook
-                    updateBookDisplay()
-                    Toast.makeText(this, "Đã cập nhật thông tin sách", Toast.LENGTH_SHORT).show()
-                }
             }
             .setNegativeButton("Hủy", null)
             .show()
     }
 
-    private fun updateBookDisplay() {
-        currentBook?.let { book ->
-            tvTitle.text = book.title ?: "Không có tiêu đề"
-            tvAuthor.text = book.author ?: "Không có tác giả"
-            tvDescription.text = book.description ?: "Không có mô tả"
-            tvIsbn.text = book.isbn ?: "Không có ISBN"
-            tvPublishedYear.text = book.publishedYear?.toString() ?: "Không có năm xuất bản"
+    private fun updateBook(title: String, author: String, category: String, description: String, isbn: String, publishedYear: String) {
+        if (bookId == null) {
+            Toast.makeText(this, "Không có ID sách để cập nhật", Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                android.util.Log.d("BookDetailActivity", "Updating book with ID: $bookId")
+                val updatedBook = currentBook?.copy(
+                    title = title,
+                    author = author,
+                    category = category,
+                    description = description,
+                    isbn = isbn,
+                    publishedYear = publishedYear.toIntOrNull()
+                )
+                
+                if (updatedBook != null) {
+                    val response = withContext(Dispatchers.IO) {
+                        apiService.updateBook(bookId!!, updatedBook)
+                    }
+                    
+                    val result = response.book
+                    if (result != null) {
+                        currentBook = result
+                        displayBook(result)
+                        Toast.makeText(this@BookDetailActivity, "Đã cập nhật thông tin sách", Toast.LENGTH_SHORT).show()
+                        android.util.Log.d("BookDetailActivity", "Book updated successfully: ${result.title}")
+                    } else {
+                        Toast.makeText(this@BookDetailActivity, "Không thể cập nhật thông tin sách", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    Toast.makeText(this@BookDetailActivity, "Không thể tạo dữ liệu sách để cập nhật", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("BookDetailActivity", "Error updating book: ${e.message}", e)
+                Toast.makeText(this@BookDetailActivity, "Lỗi khi cập nhật sách: ${e.message}", Toast.LENGTH_LONG).show()
+            }
         }
     }
 
@@ -280,9 +327,20 @@ class BookDetailActivity : AppCompatActivity() {
     }
 
     private fun deleteBook() {
-        // TODO: Implement actual deletion logic
-        Toast.makeText(this, "Đã xóa sách \"${currentBook?.title}\"", Toast.LENGTH_SHORT).show()
-        finish() // Close the detail activity
+        if (bookId == null) return
+        
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    apiService.deleteBook(bookId!!)
+                }
+                
+                Toast.makeText(this@BookDetailActivity, "Đã xóa sách \"${currentBook?.title}\"", Toast.LENGTH_SHORT).show()
+                finish() // Close the detail activity
+            } catch (e: Exception) {
+                Toast.makeText(this@BookDetailActivity, "Lỗi khi xóa sách: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun viewReviews() {
@@ -292,7 +350,7 @@ class BookDetailActivity : AppCompatActivity() {
             intent.putExtra("book_title", currentBook?.title ?: "Sách")
             startActivity(intent)
         } else {
-            Toast.makeText(this, "Không thể xem đánh giá sách mẫu", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Không thể xem đánh giá sách", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -304,51 +362,29 @@ class BookDetailActivity : AppCompatActivity() {
 
     private fun loadBookReviews() {
         if (bookId == null) {
-            // Show sample reviews for demo books
-            showSampleReviews()
+            android.util.Log.d("BookDetailActivity", "No book ID for reviews")
             return
         }
 
         CoroutineScope(Dispatchers.Main).launch {
             try {
-                reviews = withContext(Dispatchers.IO) {
+                android.util.Log.d("BookDetailActivity", "Loading reviews for book ID: $bookId")
+                val response = withContext(Dispatchers.IO) {
                     apiService.getBookReviews(bookId!!)
                 }
+                reviews = response.reviews ?: emptyList()
+                android.util.Log.d("BookDetailActivity", "Loaded ${reviews.size} reviews")
                 updateReviewSummary()
             } catch (e: Exception) {
-                // Show sample reviews if API fails
-                showSampleReviews()
+                android.util.Log.e("BookDetailActivity", "Error loading reviews: ${e.message}", e)
+                Toast.makeText(this@BookDetailActivity, "Không thể tải đánh giá: ${e.message}", Toast.LENGTH_SHORT).show()
+                // Set empty reviews
+                reviews = emptyList()
+                updateReviewSummary()
             }
         }
     }
 
-    private fun showSampleReviews() {
-        // Show sample reviews for demo purposes
-        reviews = listOf(
-            Review(
-                id = "sample1",
-                user = com.example.libman.models.User(name = "Nguyễn Văn A"),
-                rating = 5,
-                comment = "Sách rất hay, nội dung sâu sắc và ý nghĩa.",
-                createdAt = "2024-01-15T10:30:00Z"
-            ),
-            Review(
-                id = "sample2", 
-                user = com.example.libman.models.User(name = "Trần Thị B"),
-                rating = 4,
-                comment = "Cuốn sách khá thú vị, tuy nhiên một số phần hơi dài dòng.",
-                createdAt = "2024-01-10T14:20:00Z"
-            ),
-            Review(
-                id = "sample3",
-                user = com.example.libman.models.User(name = "Lê Văn C"),
-                rating = 5,
-                comment = "Tuyệt vời! Đây là một trong những cuốn sách hay nhất tôi từng đọc.",
-                createdAt = "2024-01-05T09:15:00Z"
-            )
-        )
-        updateReviewSummary()
-    }
 
     private fun updateReviewSummary() {
         if (reviews.isNotEmpty()) {
@@ -379,44 +415,4 @@ class BookDetailActivity : AppCompatActivity() {
         return true
     }
 
-    private fun getSampleBooks(): List<Book> {
-        return listOf(
-            Book(
-                title = "Truyện Kiều",
-                author = "Nguyễn Du",
-                category = "Văn học cổ điển",
-                publishedYear = 1820
-            ),
-            Book(
-                title = "Chí Phèo",
-                author = "Nam Cao",
-                category = "Văn học hiện thực",
-                publishedYear = 1941
-            ),
-            Book(
-                title = "Dế Mèn phiêu lưu ký",
-                author = "Tô Hoài",
-                category = "Văn học thiếu nhi",
-                publishedYear = 1941
-            ),
-            Book(
-                title = "Romeo và Juliet",
-                author = "William Shakespeare",
-                category = "Kịch",
-                publishedYear = 1597
-            ),
-            Book(
-                title = "Chiến tranh và Hòa bình",
-                author = "Leo Tolstoy",
-                category = "Tiểu thuyết sử thi",
-                publishedYear = 1869
-            ),
-            Book(
-                title = "Những người khốn khổ",
-                author = "Victor Hugo",
-                category = "Tiểu thuyết xã hội",
-                publishedYear = 1862
-            )
-        )
-    }
 }

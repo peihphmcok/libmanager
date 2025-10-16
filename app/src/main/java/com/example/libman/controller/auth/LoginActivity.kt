@@ -52,8 +52,19 @@ class LoginActivity : AppCompatActivity() {
                         apiService.login(LoginRequest(email, pass))
                     }
                     if (!response.token.isNullOrEmpty()) {
+                        android.util.Log.d("LoginActivity", "Login successful - saving user info")
+                        android.util.Log.d("LoginActivity", "User: ${response.user}")
+                        android.util.Log.d("LoginActivity", "User ID: ${response.user?.id}")
+                        android.util.Log.d("LoginActivity", "User Name: ${response.user?.fullname ?: response.user?.name}")
+                        
                         tokenManager.saveToken(response.token)
                         tokenManager.saveRole(response.user?.role)
+                        tokenManager.saveUserInfo(response.user)
+                        
+                        // Verify that user info was saved
+                        val savedUserId = tokenManager.getUserId()
+                        android.util.Log.d("LoginActivity", "Saved user ID: $savedUserId")
+                        
                         startActivity(Intent(this@LoginActivity, HomeActivity::class.java))
                         finish()
                     } else {
